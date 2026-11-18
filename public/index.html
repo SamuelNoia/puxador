@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Puxador de Dados</title>
+  <link rel="stylesheet" href="/app.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🗄️</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">PD</span>
+      <div>
+        <strong>Puxador de Dados</strong>
+        <small id="versao">v1</small>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-tela="conexoes" class="tab ativo">1 · Conexões</button>
+      <button data-tela="puxar" class="tab">2 · Puxar dados</button>
+      <button data-tela="resultado" class="tab" disabled>3 · Resultado</button>
+    </nav>
+    <div class="topbar-right">
+      <span id="status-servidor" class="pill">conectando…</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============================================================ CONEXOES -->
+    <section id="tela-conexoes" class="tela ativa">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h2 id="titulo-form">Nova conexão</h2>
+            <button class="btn ghost sm" id="btn-limpar-form">limpar</button>
+          </div>
+          <form id="form-conexao" class="card-body" autocomplete="off">
+            <input type="hidden" id="conexao-id" />
+            <div class="row">
+              <label class="field">
+                <span>Banco</span>
+                <select id="kind" required></select>
+              </label>
+              <label class="field">
+                <span>Nome da conexão</span>
+                <input id="nome" placeholder="Ex.: ERP Produção" />
+              </label>
+            </div>
+            <div class="row">
+              <label class="field grow">
+                <span>Servidor (IP ou host)</span>
+                <input id="host" placeholder="10.0.1.67" required />
+              </label>
+              <label class="field" style="max-width:120px">
+                <span>Porta</span>
+                <input id="porta" type="number" placeholder="3306" />
+              </label>
+            </div>
+            <label class="field">
+              <span id="label-base">Base de dados</span>
+              <input id="base" placeholder="nome_da_base" required />
+              <small id="ajuda-base" class="muted"></small>
+            </label>
+            <div class="row">
+              <label class="field">
+                <span>Usuário</span>
+                <input id="usuario" autocomplete="off" required />
+              </label>
+              <label class="field">
+                <span>Senha</span>
+                <input id="senha" type="password" autocomplete="new-password" placeholder="••••••" />
+                <small class="muted" id="ajuda-senha"></small>
+              </label>
+            </div>
+            <details class="avancado">
+              <summary>Opções avançadas</summary>
+              <div class="row">
+                <label class="field">
+                  <span>Schema (PostgreSQL)</span>
+                  <input id="schema" placeholder="public" />
+                </label>
+                <label class="field check">
+                  <input type="checkbox" id="ssl" />
+                  <span>Usar SSL</span>
+                </label>
+              </div>
+            </details>
+            <div class="acoes">
+              <button type="button" class="btn" id="btn-testar">Testar conexão</button>
+              <button type="submit" class="btn primary" id="btn-salvar">Salvar conexão</button>
+            </div>
+            <div id="resultado-teste" class="aviso" hidden></div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Conexões salvas</h2>
+            <span class="muted" id="contador-conexoes"></span>
+          </div>
+          <div class="card-body" id="lista-conexoes"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ PUXAR -->
+    <section id="tela-puxar" class="tela">
+      <div class="card">
+        <div class="card-head">
+          <h2>Origem dos dados</h2>
+          <span class="muted">escolha a conexão, a tabela e o que vai sair em cada coluna</span>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <label class="field grow">
+              <span>Conexão</span>
+              <select id="sel-conexao"></select>
+            </label>
+            <label class="field" id="campo-schema" hidden>
+              <span>Schema</span>
+              <select id="sel-schema"></select>
+            </label>
+            <label class="field grow">
+              <span>Tabela</span>
+              <input id="filtro-tabela" placeholder="filtrar tabelas…" />
+              <select id="sel-tabela" size="8" class="lista-tabelas"></select>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="card-colunas" hidden>
+        <div class="card-head">
+          <h2>Colunas e formatação</h2>
+          <div class="acoes-inline">
+            <button class="btn ghost sm" id="btn-todas">marcar todas</button>
+            <button class="btn ghost sm" id="btn-nenhuma">desmarcar</button>
+            <span class="muted" id="resumo-colunas"></span>
+          </div>
+        </div>
+        <div class="card-body sem-padding">
+          <table class="tabela-mapa">
+            <thead>
+              <tr>
+                <th style="width:34px"></th>
+                <th>Coluna no banco</th>
+                <th>Tipo</th>
+                <th>Nome na planilha</th>
+                <th>Formatação</th>
+                <th style="width:90px">Decimais</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-colunas"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2" id="card-filtros" hidden>
+        <div class="card">
+          <div class="card-head">
+            <h2>Filtros</h2>
+            <button class="btn ghost sm" id="btn-add-filtro">+ filtro</button>
+          </div>
+          <div class="card-body" id="lista-filtros">
+            <p class="muted vazio">Nenhum filtro. Todos os registros serão puxados.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Ordenação e limite</h2></div>
+          <div class="card-body">
+            <div class="row">
+              <label class="field grow">
+                <span>Ordenar por</span>
+                <select id="sel-ordem"></select>
+              </label>
+              <label class="field" style="max-width:130px">
+                <span>Direção</span>
+                <select id="sel-dir">
+                  <option value="asc">Crescente</option>
+                  <option value="desc">Decrescente</option>
+                </select>
+              </label>
+            </div>
+            <label class="field">
+              <span>Limite de linhas</span>
+              <input id="limite" type="number" min="0" placeholder="0 = todas" />
+              <small class="muted">A prévia mostra até <span id="prev-limit"></span> linhas; a exportação vai até o limite definido.</small>
+            </label>
+            <div class="acoes">
+              <button class="btn" id="btn-contar">Contar registros</button>
+              <button class="btn primary" id="btn-previa">Puxar dados</button>
+            </div>
+            <div id="aviso-puxar" class="aviso" hidden></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ RESULTADO -->
+    <section id="tela-resultado" class="tela">
+      <div class="card">
+        <div class="card-head">
+          <h2>Resultado</h2>
+          <div class="acoes-inline">
+            <button class="btn" id="btn-export-csv">Exportar CSV</button>
+            <button class="btn primary" id="btn-export-xlsx">Exportar Excel</button>
+            <button class="btn ghost" id="btn-salvar-mapa">Salvar mapeamento</button>
+          </div>
+        </div>
+        <div class="card-body sem-padding">
+          <div id="info-resultado" class="info-resultado"></div>
+          <div class="tabela-scroll">
+            <table class="tabela-resultado"><thead id="head-resultado"></thead><tbody id="body-resultado"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

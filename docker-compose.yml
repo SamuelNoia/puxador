@@ -1,0 +1,23 @@
+services:
+  puxador:
+    build: .
+    image: puxador-dados:1.0.0
+    container_name: puxador-dados
+    restart: unless-stopped
+    ports:
+      - "8790:8790"
+    environment:
+      PORT: "8790"
+      HOST: "0.0.0.0"
+      DATA_DIR: "/data"
+      # Descomente para exigir senha no acesso ao portal:
+      # ACCESS_PASSWORD: "troque-esta-senha"
+      TZ: "America/Sao_Paulo"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8790/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

@@ -1,0 +1,30 @@
+[Unit]
+Description=Puxador de Dados
+Documentation=https://github.com/SamuelNoia/puxador
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=SEU_USUARIO
+WorkingDirectory=/home/SEU_USUARIO/puxador
+Environment=NODE_ENV=production
+Environment=PORT=8790
+Environment=HOST=0.0.0.0
+Environment=TZ=America/Sao_Paulo
+# Environment=ACCESS_PASSWORD=troque-esta-senha
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# endurecimento
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/SEU_USUARIO/puxador/data
+
+[Install]
+WantedBy=multi-user.target

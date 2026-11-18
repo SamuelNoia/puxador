@@ -1,0 +1,11 @@
+node_modules
+data
+.git
+.github
+*.log
+_itens.xlsx
+_check.json
+_dbg.mjs
+_conn.json
+_req.json
+npm-debug.log*
