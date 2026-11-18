@@ -51,6 +51,17 @@ Diferenças importantes em relação aos outros:
 7. Firebird 2.5 exige que a `wireCrypt` esteja desativada em servidores antigos — se der erro de
    conexão, ajuste `options.wireCrypt` no cadastro.
 
+### Erros comuns no Firebird
+
+| O que foi digitado no campo do banco | Erro que aparece | Correção |
+|---|---|---|
+| `10.0.0.52:\dados\base.eco` | `Unavailable database` | o IP vai **só** no campo *Servidor*; aqui vai `C:\dados\base.eco` |
+| `eco Copy` (alias do IBExpert) | `I/O error ... open file` | use o caminho completo do arquivo, não o alias |
+| `ECODADOS.ECO` (só o nome) | `I/O error ... open file` | informe o caminho completo no servidor |
+| caminho de rede `\\servidor\share\base.fdb` | `Unavailable database` | o caminho é resolvido **no servidor** do Firebird, não na sua máquina |
+
+Desde a versão 1.0.1 o portal valida esses casos antes de tentar conectar e explica a correção.
+
 ---
 
 ## Tipos × formatação sugerida

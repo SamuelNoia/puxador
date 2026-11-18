@@ -4,6 +4,21 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.1] — 2026-11-18
+
+### Corrigido
+
+- **Firebird: caminho do banco com o servidor dentro** (`10.0.0.52:\dados\base.eco`) agora é barrado
+  no formulário e na API, com a explicação de que o IP vai apenas no campo *Servidor*. Antes o erro
+  exibido era apenas `Unavailable database`.
+- **Firebird: alias do IBExpert** (`eco Copy`) também é detectado, com a orientação de usar o caminho
+  completo do arquivo no servidor.
+- Mensagens de erro de conexão traduzidas: arquivo não encontrado, banco indisponível, usuário/senha
+  recusados, servidor recusou a conexão, host não encontrado, tempo esgotado e charset incompatível
+  passam a vir com a causa provável e o que conferir.
+- Campo do Firebird renomeado para **“Caminho do banco no servidor (.fdb / .eco)”**, com placeholder
+  e ajuda específicos.
+
 ## [1.0.0] — 2026-11-18
 
 Primeira versão estável.

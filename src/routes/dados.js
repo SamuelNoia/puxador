@@ -1,4 +1,4 @@
-// Rotas de extracao: previa, contagem, exportacao e mapeamentos salvos.
+﻿// Rotas de extracao: previa, contagem, exportacao e mapeamentos salvos.
 import path from 'node:path';
 import { route, HttpError, sendDownload, sendJson } from '../web.js';
 import { all, get, run, nowIso } from '../db.js';
@@ -7,6 +7,7 @@ import { driver } from '../drivers/index.js';
 import { aplicarFormato, sugerirFormato } from '../format.js';
 import { gerarXlsx, gerarCsv } from '../export.js';
 import { PREVIEW_LIMIT, MAX_ROWS } from '../config.js';
+import { mensagemAmigavel } from '../errors.js';
 
 function cfgDaConexao(id) {
   const row = get('SELECT * FROM connections WHERE id = ?', Number(id));
@@ -92,7 +93,9 @@ export function registrar() {
       if (c && c.nome) tipos[c.nome] = c.tipo || '';
     }
 
-    const res = await drv.query(cfg, spec);
+    const res = await drv.query(cfg, spec).catch((e) => {
+      throw new HttpError(400, mensagemAmigavel(cfg.kind, e));
+    });
     const colunasBanco = (spec.columns.length ? spec.columns : res.colunas);
     const mapeamento = montarMapeamento(body, colunasBanco, tipos);
     const linhas = aplicarMapeamento(colunasBanco, mapeamento, res.linhas);
@@ -128,7 +131,9 @@ export function registrar() {
     validarPull(body);
     const cfg = cfgDaConexao(body.conexaoId);
     const spec = montarSpec(cfg, body, 0);
-    const total = await driver(cfg.kind).count(cfg, spec);
+    const total = await driver(cfg.kind).count(cfg, spec).catch((e) => {
+      throw new HttpError(400, mensagemAmigavel(cfg.kind, e));
+    });
     return { ok: true, total };
   });
 
@@ -146,7 +151,9 @@ export function registrar() {
     const pedido = Number(body.limite) > 0 ? Number(body.limite) : MAX_ROWS;
     const spec = montarSpec(cfg, body, Math.min(pedido, MAX_ROWS));
 
-    const res = await drv.query(cfg, spec);
+    const res = await drv.query(cfg, spec).catch((e) => {
+      throw new HttpError(400, mensagemAmigavel(cfg.kind, e));
+    });
     const colunasBanco = (spec.columns.length ? spec.columns : res.colunas);
 
     const mapeamento = body.mapeamento
@@ -246,3 +253,4 @@ export function registrar() {
     return { resultado: aplicarFormato(valor, body.formato || 'original', body.decimais) };
   });
 }
+

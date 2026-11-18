@@ -130,11 +130,32 @@ function ajustarCamposPorBanco() {
     mysql: 'Nome da base (database) no servidor MySQL.',
     mariadb: 'Nome da base (database) no servidor MariaDB.',
     postgres: 'Nome da base (database) no PostgreSQL.',
-    firebird: 'Caminho completo do arquivo .fdb no servidor, ex.: C:\\dados\\empresa.fdb',
+    firebird: 'Caminho completo do arquivo NO SERVIDOR (ex.: C:\\ecosis\\dados\\ECODADOS.ECO). '
+      + 'Não use alias do IBExpert nem coloque o IP aqui.',
   }[kind] || '';
   $('#ajuda-base').textContent = ajuda;
-  $('#label-base').textContent = kind === 'firebird' ? 'Arquivo do banco (.fdb)' : 'Base de dados';
+  $('#label-base').textContent = kind === 'firebird'
+    ? 'Caminho do banco no servidor (.fdb / .eco)'
+    : 'Base de dados';
+  $('#base').placeholder = kind === 'firebird' ? 'C:\\ecosis\\dados\\ECODADOS.ECO' : 'nome_da_base';
   $('#campo-schema').hidden = kind !== 'postgres';
+}
+
+/** Valida o formulário antes de enviar. Devolve a mensagem de erro ou null. */
+function validarFormulario(corpo) {
+  if (corpo.kind === 'firebird') {
+    const caminho = String(corpo.base || '').trim();
+    const hostNoCaminho = /^([^\\/]{2,}):[\\/]/.exec(caminho);
+    if (hostNoCaminho && !/^[A-Za-z]$/.test(hostNoCaminho[1])) {
+      return 'O caminho não deve incluir o servidor. Deixe o IP só no campo "Servidor" '
+        + 'e aqui apenas o caminho do arquivo — ex.: C:\\ecosis\\dados\\ECODADOS.ECO';
+    }
+    if (caminho && !/[\\/]/.test(caminho) && !/\.[A-Za-z0-9]{2,5}$/.test(caminho)) {
+      return 'Isso parece um alias do IBExpert. Informe o caminho completo do arquivo no servidor '
+        + '(ex.: C:\\ecosis\\dados\\ECODADOS.ECO).';
+    }
+  }
+  return null;
 }
 
 function limparFormulario() {
@@ -525,6 +546,14 @@ function ligarEventos() {
     ev.preventDefault();
     const id = $('#conexao-id').value;
     const corpo = corpoFormulario();
+    const problema = validarFormulario(corpo);
+    if (problema) {
+      const aviso = $('#resultado-teste');
+      aviso.hidden = false;
+      aviso.className = 'aviso erro';
+      aviso.textContent = problema;
+      return;
+    }
     try {
       if (id) await api(`/api/conexoes/${id}`, { method: 'PUT', body: corpo });
       else await api('/api/conexoes', { method: 'POST', body: corpo });
@@ -540,10 +569,16 @@ function ligarEventos() {
     const alvo = $('#resultado-teste');
     alvo.hidden = false;
     alvo.className = 'aviso info';
+    const corpo = corpoFormulario();
+    const problema = validarFormulario(corpo);
+    if (problema) {
+      alvo.className = 'aviso erro';
+      alvo.textContent = problema;
+      return;
+    }
     alvo.textContent = 'Testando…';
     try {
       const id = $('#conexao-id').value;
-      const corpo = corpoFormulario();
       const r = id && !corpo.senha
         ? await api(`/api/conexoes/${id}/testar`, { method: 'POST', body: corpo })
         : await api('/api/conexoes/testar', { method: 'POST', body: corpo });

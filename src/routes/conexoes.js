@@ -3,6 +3,16 @@ import { route, HttpError } from '../web.js';
 import { all, get, run, nowIso } from '../db.js';
 import { encrypt, decrypt } from '../crypto.js';
 import { driver, BANCOS } from '../drivers/index.js';
+import { validarBaseFirebird, mensagemAmigavel } from '../errors.js';
+
+/** Executa uma acao no driver convertendo o erro em mensagem de tela. */
+async function comErroAmigavel(kind, contexto, acao) {
+  try {
+    return await acao();
+  } catch (err) {
+    throw new HttpError(400, mensagemAmigavel(kind, err, contexto));
+  }
+}
 
 function paraPublico(row) {
   if (!row) return null;
@@ -59,6 +69,11 @@ function validar(cfg) {
     ? 'Informe o caminho do arquivo .fdb no servidor Firebird.'
     : 'Informe o nome da base de dados.');
   if (!cfg.username) throw new HttpError(400, 'Informe o usuario do banco.');
+
+  if (cfg.kind === 'firebird') {
+    const problema = validarBaseFirebird(cfg.database);
+    if (problema) throw new HttpError(400, problema);
+  }
 }
 
 export function registrar() {
@@ -110,7 +125,8 @@ export function registrar() {
     const cfg = montarCfg(ctx.body || {}, id);
     validar(cfg);
     const inicio = Date.now();
-    const info = await driver(cfg.kind).test(cfg);
+    const info = await comErroAmigavel(cfg.kind, `${cfg.host}:${cfg.port}`,
+      () => driver(cfg.kind).test(cfg));
     return { ok: true, ...info, ms: Date.now() - inicio };
   });
 
@@ -119,14 +135,16 @@ export function registrar() {
     const cfg = montarCfg(ctx.body || {});
     validar(cfg);
     const inicio = Date.now();
-    const info = await driver(cfg.kind).test(cfg);
+    const info = await comErroAmigavel(cfg.kind, `${cfg.host}:${cfg.port}`,
+      () => driver(cfg.kind).test(cfg));
     return { ok: true, ...info, ms: Date.now() - inicio };
   });
 
   route('GET', '/api/conexoes/:id/schemas', async (ctx) => {
     const id = Number(ctx.params.id);
     const cfg = montarCfg({}, id);
-    const schemas = await driver(cfg.kind).listSchemas(cfg);
+    const schemas = await comErroAmigavel(cfg.kind, `${cfg.host}:${cfg.port}`,
+      () => driver(cfg.kind).listSchemas(cfg));
     return { schemas };
   });
 
@@ -134,7 +152,8 @@ export function registrar() {
     const id = Number(ctx.params.id);
     const cfg = montarCfg({}, id);
     const schema = ctx.url.searchParams.get('schema') || undefined;
-    const tabelas = await driver(cfg.kind).listTables(cfg, { schema });
+    const tabelas = await comErroAmigavel(cfg.kind, `${cfg.host}:${cfg.port}`,
+      () => driver(cfg.kind).listTables(cfg, { schema }));
     return { tabelas, total: tabelas.length };
   });
 
@@ -144,7 +163,8 @@ export function registrar() {
     const schema = ctx.url.searchParams.get('schema') || undefined;
     const tabela = ctx.url.searchParams.get('tabela');
     if (!tabela) throw new HttpError(400, 'Informe a tabela.');
-    const colunas = await driver(cfg.kind).listColumns(cfg, schema, tabela);
+    const colunas = await comErroAmigavel(cfg.kind, `${cfg.host}:${cfg.port}`,
+      () => driver(cfg.kind).listColumns(cfg, schema, tabela));
     return { colunas };
   });
 }
