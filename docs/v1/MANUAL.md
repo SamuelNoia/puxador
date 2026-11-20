@@ -69,6 +69,11 @@ Os botões **marcar visíveis / desmarcar visíveis** agem só no que está filt
 O botão **minimizar** recolhe a grade inteira (útil depois de configurar tudo, para enxergar
 relacionamentos e filtros sem rolar muito); ele vira **expandir** para voltar.
 
+> **Nomes repetidos.** Colunas de tabelas diferentes podem ter o mesmo nome (`Id`, `Descricao`).
+> Para evitar que uma sobrescreva a outra na planilha, as colunas vindas de tabelas relacionadas ganham
+> o prefixo da tabela (`fabricante_Id`, `fabricante_Descricao`). Se você renomear duas colunas para o
+> mesmo nome, o campo fica **vermelho** e o Puxador bloqueia a extração avisando quais nomes repetem.
+
 **Formatações disponíveis**
 
 | Formatação | Resultado |

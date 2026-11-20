@@ -431,9 +431,12 @@ function reconstruirMapa() {
       const chave = `${f.alias}.${c.nome}`;
       const antigo = S.mapa.get(chave);
       const padrao = idx === 0;
+      // nao-principal ganha prefixo para nao colidir com o mesmo nome da tabela principal
+      // (ex.: item.Id x fabricante.Id -> "fabricante_Id")
+      const destinoPadrao = idx === 0 ? c.nome : `${f.tabela}_${c.nome}`;
       novo.set(chave, antigo || {
         marcada: padrao,
-        destino: c.nome,
+        destino: destinoPadrao,
         formato: sugerir(c.tipo),
         decimais: '',
         tipo: c.tipo,
@@ -459,6 +462,7 @@ function renderColunas() {
   }
 
   const busca = S.buscaColunas.trim().toLowerCase();
+  const dups = destinosDuplicados();
   const linhas = [];
 
   S.fontes.forEach((f, idx) => {
@@ -480,12 +484,14 @@ function renderColunas() {
       const opcoes = S.formatos
         .map((x) => `<option value="${x.id}" ${m.formato === x.id ? 'selected' : ''}>${esc(x.label)}</option>`)
         .join('');
+      const repetido = m.marcada && dups.has(String(m.destino || '').trim().toLowerCase());
       linhas.push(`
         <tr data-chave="${esc(chave)}" class="${m.marcada ? '' : 'desmarcada'}">
           <td><input type="checkbox" data-papel="marcar" ${m.marcada ? 'checked' : ''} /></td>
           <td><strong>${esc(c.nome)}</strong>${c.chave ? ' <span class="tag">PK</span>' : ''}</td>
           <td class="tipo-col">${esc(c.tipo)}</td>
-          <td><input type="text" data-papel="destino" value="${esc(m.destino)}" /></td>
+          <td><input type="text" data-papel="destino" class="${repetido ? 'dup' : ''}" value="${esc(m.destino)}"
+                     title="${repetido ? 'Este nome já está sendo usado por outra coluna' : ''}" /></td>
           <td><select data-papel="formato">${opcoes}</select></td>
           <td><input type="number" data-papel="decimais" value="${esc(m.decimais)}" min="0" max="6" /></td>
         </tr>`);
@@ -501,6 +507,26 @@ function renderColunas() {
 function atualizarResumoColunas() {
   const marcadas = [...S.mapa.values()].filter((m) => m.marcada).length;
   $('#resumo-colunas').textContent = `${marcadas} de ${S.mapa.size} coluna(s)`;
+}
+
+/** Nomes de planilha repetidos entre colunas marcadas (o Excel/CSV sobrescreveria um pelo outro). */
+function destinosDuplicados() {
+  const contagem = new Map();
+  for (const m of S.mapa.values()) {
+    if (!m.marcada) continue;
+    const nome = String(m.destino || '').trim().toLowerCase();
+    if (!nome) continue;
+    contagem.set(nome, (contagem.get(nome) || 0) + 1);
+  }
+  return new Set([...contagem.entries()].filter(([, n]) => n > 1).map(([nome]) => nome));
+}
+
+function avisarDuplicados() {
+  const dups = destinosDuplicados();
+  if (!dups.size) return false;
+  const lista = [...dups].map((d) => `“${d}”`).join(', ');
+  toast(`Nome repetido na planilha: ${lista}. Ajuste o campo “Nome na planilha”.`, 'erro');
+  return true;
 }
 
 /* ---------------------------------------------------------------- relacionamentos */
@@ -763,6 +789,7 @@ function atualizarCartoes() {
 }
 
 async function puxarDados() {
+  if (avisarDuplicados()) return;
   const btn = $('#btn-previa');
   btn.disabled = true;
   btn.textContent = 'Puxando…';
@@ -835,6 +862,7 @@ function renderResultado(dados) {
 
 async function exportar(formato) {
   if (!S.resultado) return toast('Puxe os dados antes de exportar.', 'erro');
+  if (avisarDuplicados()) return;
   try {
     const corpo = montarCorpo({ formato, arquivo: S.fontes[0]?.tabela, titulo: S.fontes[0]?.tabela });
     const resp = await fetch('/api/exportar', {
@@ -1053,6 +1081,8 @@ function ligarEventos() {
       atualizarResumoColunas();
       renderFontes();
     }
+    // ao sair do campo, re-renderiza para atualizar o destaque de nomes repetidos
+    if (papel === 'destino') renderColunas();
   });
 
   $('#btn-todas').addEventListener('click', () => {

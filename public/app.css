@@ -409,6 +409,9 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .saida-linha .coluna-nome { font-size: 13px; }
 .saida-linha input, .saida-linha select { padding: 6px 8px; }
 
+/* nome de coluna repetido */
+input.dup { border-color: var(--vermelho); background: #fdf1f0; box-shadow: 0 0 0 3px rgba(179, 38, 30, .10); }
+
 .rel-add { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .rel-add select { max-width: 320px; padding: 6px 8px; }
 .rel-erro { color: var(--vermelho); font-size: 12px; margin-top: 6px; }

@@ -4,6 +4,19 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.3.1] — 2026-11-21
+
+### Corrigido
+
+- **Colunas homônimas de tabelas diferentes se sobrescreviam na saída** (ex.: `item.Id` e
+  `fabricante.Id`, `item.Descricao` e `fabricante.Descricao`): o resultado mostrava dois cabeçalhos
+  iguais e apenas o último valor sobrevivia.
+  - Colunas de tabelas relacionadas agora recebem o prefixo da tabela por padrão
+    (`fabricante_Id`, `fabricante_Descricao`).
+  - Nomes repetidos ficam **destacados em vermelho** na grade, e a extração/exportação é bloqueada
+    com a mensagem `Nome repetido na planilha: "Id". Renomeie uma das colunas…` — tanto na interface
+    quanto na API (defesa em profundidade), para nunca gerar arquivo com dado perdido.
+
 ## [1.3.0] — 2026-11-21
 
 ### Alterado

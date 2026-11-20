@@ -116,6 +116,29 @@ function aplicarMapeamento(mapeamento, linhas) {
   });
 }
 
+/** Dois destinos iguais fariam uma coluna sobrescrever a outra na planilha. */
+function validarDestinos(mapeamento) {
+  const contagem = new Map();   // chave minuscula -> { nome original, vezes }
+  for (const m of mapeamento) {
+    const nome = String(m.destino || m.origem || '').trim();
+    if (!nome) continue;
+    const chave = nome.toLowerCase();
+    const atual = contagem.get(chave) || { nome, vezes: 0 };
+    atual.vezes += 1;
+    contagem.set(chave, atual);
+  }
+  const repetidos = [...contagem.values()]
+    .filter((x) => x.vezes > 1)
+    .map((x) => `"${x.nome}"`);
+  if (repetidos.length) {
+    throw new HttpError(
+      400,
+      `Nome repetido na planilha: ${repetidos.join(', ')}. `
+      + 'Renomeie uma das colunas em "Nome na planilha" (ex.: fabricante_Id) para não perder dados.',
+    );
+  }
+}
+
 export function registrar() {
   // Previa na tela de resultado
   route('POST', '/api/puxar', async (ctx) => {
@@ -138,6 +161,7 @@ export function registrar() {
     });
     const colunasBanco = colunasResultado(spec, res);
     const mapeamento = montarMapeamento(body, colunasBanco, tipos);
+    validarDestinos(mapeamento);
     const linhas = aplicarMapeamento(mapeamento, res.linhas);
 
     let total = null;
@@ -204,6 +228,7 @@ export function registrar() {
         decimais: m.decimais === undefined || m.decimais === null || m.decimais === '' ? undefined : Number(m.decimais),
       }));
 
+    validarDestinos(mapeamento);
     const linhas = aplicarMapeamento(mapeamento, res.linhas);
     const carimbo = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
     const base = path.basename(String(body.arquivo || body.tabela || 'dados')).replace(/[^\w.-]+/g, '_');
