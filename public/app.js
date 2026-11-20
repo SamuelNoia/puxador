@@ -504,50 +504,101 @@ function atualizarResumoColunas() {
 }
 
 /* ---------------------------------------------------------------- relacionamentos */
+// Cada bloco: Tabela 1 (coluna) = Tabela 2 (coluna)  +  saída (nome na planilha e formatação)
 function renderJuncoes() {
   const alvo = $('#lista-juncoes');
-  const juncoes = S.juncoes.filter((j) => fontePorAlias(j.para) && fontePorAlias(j.de));
 
   if (S.fontes.length < 2) {
     alvo.innerHTML = '<p class="muted vazio">Com uma única tabela não é preciso relacionamento.</p>';
     return;
   }
 
-  alvo.innerHTML = juncoes.map((j) => {
-    const fonte = fontePorAlias(j.para);
-    const pai = fontePorAlias(j.de);
-    const idx = S.fontes.indexOf(fonte);
+  const juncoes = S.juncoes.filter((j) => fontePorAlias(j.para) && fontePorAlias(j.de));
+  if (!juncoes.length) {
+    alvo.innerHTML = '<p class="muted vazio">Adicione outra tabela para criar um relacionamento.</p>';
+    return;
+  }
 
-    const opcoesPai = S.fontes
+  alvo.innerHTML = juncoes.map((j) => {
+    const f2 = fontePorAlias(j.para);
+    const f1 = fontePorAlias(j.de);
+    if (!f2 || !f1) return '';
+
+    const tabela1 = (S.fontes || [])
       .filter((f) => f.alias !== j.para && f.colunas.length)
-      .map((f) => `<option value="${esc(f.alias)}" ${f.alias === j.de ? 'selected' : ''}>Fonte ${S.fontes.indexOf(f) + 1} · ${esc(f.tabela)}</option>`)
+      .map((f) => `<option value="${esc(f.alias)}" ${f.alias === j.de ? 'selected' : ''}>${esc(f.tabela)}</option>`)
       .join('');
-    const colunasPai = (pai?.colunas || [])
+
+    const todasTabelas = (S.tabelas || [])
+      .map((t) => `<option value="${esc(t.nome)}" ${t.nome === f2.tabela ? 'selected' : ''}>${esc(t.nome)}</option>`)
+      .join('');
+
+    const colunas1 = f1.colunas
       .map((c) => `<option value="${esc(c.nome)}" ${c.nome === j.esquerda ? 'selected' : ''}>${esc(c.nome)}</option>`)
       .join('');
-    const colunasFilha = (fonte?.colunas || [])
+    const colunas2 = f2.colunas
       .map((c) => `<option value="${esc(c.nome)}" ${c.nome === j.direita ? 'selected' : ''}>${esc(c.nome)}</option>`)
       .join('');
 
+    // colunas desta tabela que vão sair na planilha
+    const marcadas = f2.colunas.filter((c) => S.mapa.get(`${f2.alias}.${c.nome}`)?.marcada);
+    const disponiveis = f2.colunas.filter((c) => !S.mapa.get(`${f2.alias}.${c.nome}`)?.marcada);
+
+    const saida = marcadas.map((c) => {
+      const chave = `${f2.alias}.${c.nome}`;
+      const m = S.mapa.get(chave);
+      const opcoesFormato = S.formatos
+        .map((x) => `<option value="${x.id}" ${m.formato === x.id ? 'selected' : ''}>${esc(x.label)}</option>`)
+        .join('');
+      return `
+        <div class="saida-linha" data-chave="${esc(chave)}">
+          <input type="checkbox" data-papel="saida-marcar" checked title="incluir na planilha" />
+          <span class="coluna-nome">${esc(c.nome)}</span>
+          <input type="text" data-papel="saida-destino" value="${esc(m.destino)}" placeholder="nome na planilha" />
+          <select data-papel="saida-formato">${opcoesFormato}</select>
+          <input type="number" data-papel="saida-decimais" value="${esc(m.decimais)}" min="0" max="6" title="decimais" />
+        </div>`;
+    }).join('');
+
+    const addColuna = disponiveis.length
+      ? `<div class="rel-add">
+           <select data-papel="add-coluna">
+             <option value="">+ adicionar coluna de ${esc(f2.tabela)}…</option>
+             ${disponiveis.map((c) => `<option value="${esc(c.nome)}">${esc(c.nome)} · ${esc(c.tipo)}</option>`).join('')}
+           </select>
+         </div>`
+      : '';
+
+    const falta = !j.esquerda || !j.direita
+      ? '<div class="rel-erro">Escolha a coluna das duas tabelas para a ligação.</div>'
+      : '';
+
     return `
-      <div class="juncao" data-para="${esc(j.para)}">
-        <div class="juncao-linha">
-          <span class="fonte-titulo">Fonte ${idx + 1} · ${esc(fonte?.tabela || '')}</span>
-          <span class="juncao-eq">ligada a</span>
+      <div class="rel" data-para="${esc(j.para)}">
+        <div class="rel-linha">
           <label class="field">
-            <span>Tabela anterior</span>
-            <select data-papel="de">${opcoesPai}</select>
+            <span>Tabela 1</span>
+            <select data-papel="t1">${tabela1}</select>
           </label>
-          <span class="juncao-eq">por</span>
           <label class="field">
-            <span>Coluna de lá</span>
-            <select data-papel="esquerda">${colunasPai}</select>
+            <span>Coluna</span>
+            <select data-papel="c1">${colunas1}</select>
           </label>
-          <span class="juncao-eq">=</span>
+          <span class="rel-igual">=</span>
           <label class="field">
-            <span>Coluna daqui</span>
-            <select data-papel="direita">${colunasFilha}</select>
+            <span>Tabela 2</span>
+            <select data-papel="t2">${todasTabelas}</select>
           </label>
+          <label class="field">
+            <span>Coluna</span>
+            <select data-papel="c2">${colunas2}</select>
+          </label>
+        </div>
+        ${falta}
+        <div class="rel-saida">
+          <span class="rel-saida-titulo">O que sai de ${esc(f2.tabela)} (nome na planilha e formatação)</span>
+          ${saida || '<p class="muted" style="margin:0 0 6px;font-size:12px">Nenhuma coluna desta tabela marcada ainda.</p>'}
+          ${addColuna}
         </div>
       </div>`;
   }).join('');
@@ -1029,15 +1080,68 @@ function ligarEventos() {
   });
 
   $('#lista-juncoes').addEventListener('change', (ev) => {
-    const bloco = ev.target.closest('.juncao');
+    const bloco = ev.target.closest('.rel');
     if (!bloco) return;
     const j = S.juncoes.find((x) => x.para === bloco.dataset.para);
     if (!j) return;
     const papel = ev.target.dataset.papel;
-    if (papel === 'de') { j.de = ev.target.value; j.esquerda = ''; }
-    if (papel === 'esquerda') j.esquerda = ev.target.value;
-    if (papel === 'direita') j.direita = ev.target.value;
-    renderJuncoes();
+
+    if (papel === 't1') {
+      j.de = ev.target.value;
+      const pai = fontePorAlias(j.de);
+      j.esquerda = adivinharChaveEstrangeira(pai, fontePorAlias(j.para)?.tabela) || pai?.colunas[0]?.nome || '';
+      renderJuncoes();
+      return;
+    }
+    if (papel === 'c1') { j.esquerda = ev.target.value; renderJuncoes(); return; }
+    if (papel === 'c2') { j.direita = ev.target.value; renderJuncoes(); return; }
+
+    if (papel === 't2') {
+      const alvo = fontePorAlias(j.para);
+      const idx = S.fontes.indexOf(alvo);
+      if (idx >= 0) trocarTabelaFonte(idx, ev.target.value);
+      return;
+    }
+
+    if (papel === 'add-coluna') {
+      if (!ev.target.value) return;
+      const chave = `${bloco.dataset.para}.${ev.target.value}`;
+      const m = S.mapa.get(chave);
+      if (m) {
+        m.marcada = true;
+        if (!m.destino || m.destino === m.coluna) m.destino = `${fontePorAlias(j.para).tabela}_${m.coluna}`;
+      }
+      renderColunas();
+      renderFontes();
+      renderJuncoes();
+      return;
+    }
+
+    if (papel === 'saida-marcar') {
+      const m = S.mapa.get(ev.target.closest('.saida-linha').dataset.chave);
+      if (m) m.marcada = ev.target.checked;
+      renderColunas();
+      renderFontes();
+      renderJuncoes();
+      return;
+    }
+
+    if (papel === 'saida-formato' || papel === 'saida-decimais' || papel === 'saida-destino') {
+      const m = S.mapa.get(ev.target.closest('.saida-linha').dataset.chave);
+      if (!m) return;
+      if (papel === 'saida-formato') m.formato = ev.target.value;
+      if (papel === 'saida-decimais') m.decimais = ev.target.value;
+      if (papel === 'saida-destino') m.destino = ev.target.value;
+      renderColunas();
+      return;
+    }
+  });
+
+  // digitação no "nome na planilha" dentro do relacionamento (sem re-renderizar para não perder o foco)
+  $('#lista-juncoes').addEventListener('input', (ev) => {
+    if (ev.target.dataset.papel !== 'saida-destino') return;
+    const m = S.mapa.get(ev.target.closest('.saida-linha').dataset.chave);
+    if (m) m.destino = ev.target.value;
   });
 
   $('#btn-add-filtro').addEventListener('click', () => {
@@ -1085,6 +1189,13 @@ function ligarEventos() {
   $('#btn-export-csv').addEventListener('click', () => exportar('csv'));
   $('#btn-salvar-mapa').addEventListener('click', salvarMapeamento);
   $('#btn-voltar').addEventListener('click', () => irPara('puxar'));
+
+  // minimizar / expandir a grade de colunas
+  $('#btn-min-colunas').addEventListener('click', () => {
+    const card = $('#card-colunas');
+    const recolhido = card.classList.toggle('recolhido');
+    $('#btn-min-colunas').textContent = recolhido ? 'expandir' : 'minimizar';
+  });
 }
 
 /* ---------------------------------------------------------------- boot */

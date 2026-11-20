@@ -4,6 +4,22 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] — 2026-11-21
+
+### Alterado
+
+- **Tela de relacionamentos redesenhada**: agora mostra `Tabela 1 · coluna = Tabela 2 · coluna` com os
+  nomes reais das tabelas (antes era “Fonte 1 / Fonte 2”, o que confundia). Dá para trocar a Tabela 1,
+  trocar a Tabela 2 e escolher as duas colunas no mesmo bloco.
+- **Saída dentro do relacionamento**: cada coluna trazida ganhou, ali mesmo, o *nome na planilha*, a
+  *formatação* (texto, inteiro, moeda, data…) e os *decimais*, com “+ adicionar coluna” para incluir
+  outras. O que é marcado ali reflete na grade de colunas e vice-versa.
+
+### Adicionado
+
+- Botão **minimizar / expandir** na grade de colunas, para enxergar relacionamentos e filtros sem
+  rolar uma lista de centenas de colunas.
+
 ## [1.2.0] — 2026-11-21
 
 ### Adicionado

@@ -361,6 +361,58 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
   top: 30px;
 }
 
+/* card recolhido (minimizado) */
+.card.recolhido .card-body { display: none; }
+.card.recolhido .card-head { border-bottom: none; }
+
+/* ---------------------------------------------------------------- relacionamentos (tabela1 = tabela2) */
+.rel {
+  border: 1px solid var(--linha);
+  border-radius: 9px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #fbfcfe;
+}
+
+.rel-linha {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 24px 1.2fr 1.2fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.rel-linha .field { margin-bottom: 0; min-width: 0; }
+.rel-igual { text-align: center; font-weight: 600; color: var(--azul); padding-bottom: 8px; }
+
+.rel-saida {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--linha);
+}
+
+.rel-saida-titulo {
+  font-size: 12px;
+  font-weight: 600;
+  color: #48566a;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.saida-linha {
+  display: grid;
+  grid-template-columns: 22px 1.1fr 1.3fr 1.2fr 70px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.saida-linha .coluna-nome { font-size: 13px; }
+.saida-linha input, .saida-linha select { padding: 6px 8px; }
+
+.rel-add { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.rel-add select { max-width: 320px; padding: 6px 8px; }
+.rel-erro { color: var(--vermelho); font-size: 12px; margin-top: 6px; }
+
 /* ---------------------------------------------------------------- toast */
 .toast {
   position: fixed;

@@ -66,6 +66,8 @@ Todas as colunas de todas as fontes aparecem numa única grade, agrupadas por ta
 
 Use o campo **pesquisar coluna ou tabela** para achar rápido em tabelas com centenas de colunas.
 Os botões **marcar visíveis / desmarcar visíveis** agem só no que está filtrado pela pesquisa.
+O botão **minimizar** recolhe a grade inteira (útil depois de configurar tudo, para enxergar
+relacionamentos e filtros sem rolar muito); ele vira **expandir** para voltar.
 
 **Formatações disponíveis**
 
@@ -89,20 +91,28 @@ Os botões **marcar visíveis / desmarcar visíveis** agem só no que está filt
 
 ### 3 · Relacionamentos
 
-Só aparece quando existe mais de uma tabela. Para cada tabela extra, defina como ela se liga a uma
-tabela anterior:
+Só aparece quando existe mais de uma tabela. Cada relacionamento é uma igualdade entre duas tabelas,
+com o nome real delas (nada de “fonte 1 / fonte 2”):
 
 ```
-Fonte 2 · fabricante    ligada a  [Fonte 1 · item ▼]  por  [IdFabricante ▼]  =  [Id ▼]
+Tabela 1 [item ▼]   Coluna [IdFabricante ▼]   =   Tabela 2 [fabricante ▼]   Coluna [Id ▼]
 ```
 
-- **Tabela anterior**: qualquer fonte já montada — é isso que permite encadear
-  `item → fabricante → país`.
-- **Coluna de lá** / **Coluna daqui**: o par que forma a igualdade.
+- **Tabela 1** — qualquer tabela já adicionada. É o que permite encadear `item → fabricante → país`.
+- **Tabela 2** — a tabela deste relacionamento; trocar aqui recarrega as colunas e a saída.
+- O sistema já sugere o par: procura `IdFabricante` na Tabela 1 e a chave primária `Id` na Tabela 2.
 
-O sistema sugere o par automaticamente (procura `IdFabricante` na tabela principal e a chave primária
-`Id` na tabela nova). O SQL gerado é `LEFT JOIN`, então registros sem correspondência **continuam
-aparecendo**, com as colunas da outra tabela vazias.
+Logo abaixo, em **“O que sai de fabricante”**, você configura a saída sem precisar voltar à grade:
+
+```
+☑  Descricao   →  nome na planilha [fabricante]   formatação [Texto ▼]   decimais [ ]
+```
+
+Use **“+ adicionar coluna de fabricante…”** para trazer outras colunas da mesma tabela. O que você
+marca aqui é o mesmo que aparece na grade de colunas — os dois lugares ficam sincronizados.
+
+O SQL gerado é `LEFT JOIN`, então registros sem correspondência **continuam aparecendo**, com as
+colunas da outra tabela vazias.
 
 ### 4 · Filtros
 
