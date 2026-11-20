@@ -60,8 +60,19 @@ npm start
 
 ### Ubuntu / Linux
 
+Um comando, usando **Docker e a imagem publicada** (não precisa de Node nem clonar o código):
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/instalar.sh | sh
+```
+
+Personalizando: `PORT=8800 sh instalar.sh`, `ACCESS_PASSWORD=senha sh instalar.sh`,
+`DATA_DIR=/srv/puxador/data sh instalar.sh`. Rodar de novo atualiza o container mantendo os dados.
+
+Sem Docker? Instalação nativa em Node:
+
+```bash
+MODO=native sh instalar.sh
 # ou, dentro do projeto:
 npm install && npm start
 ```

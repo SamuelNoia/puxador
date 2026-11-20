@@ -47,21 +47,44 @@ $env:PORT=8790; npm start
 
 ## Ubuntu / Linux
 
-### Instalação assistida
+### Instalação assistida (Docker — padrão)
+
+Baixa e sobe a **imagem publicada** no GHCR. Não precisa de Node, npm nem do código-fonte:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/instalar.sh | sh
 ```
 
-O script clona em `~/puxador`, instala dependências e cria o `iniciar.sh`.
+O script:
+
+1. confere se o Docker está instalado e acessível;
+2. baixa `ghcr.io/samuelnoia/puxador:latest`;
+3. cria a pasta de dados (`/DATA/AppData/puxador/data` em CasaOS/ZimaOS, senão `/opt/puxador/data`);
+4. sobe o container `puxador` com `--restart unless-stopped`;
+5. espera o `/api/health` responder e mostra o endereço.
 
 Variáveis aceitas:
 
 ```bash
-PORT=8800 ACCESS_PASSWORD=minhasenha sh instalar.sh
-PASTA=/srv/puxador sh instalar.sh
-MODO=docker sh instalar.sh       # instala via Docker
+PORT=8800 sh instalar.sh                        # outra porta no host
+ACCESS_PASSWORD=minhasenha sh instalar.sh       # exige login
+DATA_DIR=/srv/puxador/data sh instalar.sh       # pasta de dados
+IMAGE=ghcr.io/samuelnoia/puxador:1.0.2 sh instalar.sh
+NOME=puxador-erp sh instalar.sh                 # outro nome de container
 ```
+
+Rodar o comando de novo **atualiza** a imagem e recria o container, preservando `DATA_DIR`.
+
+Se a imagem não puder ser baixada (pacote privado), o script tenta construir a partir do código
+clonado; caso contrário, orienta o `docker login ghcr.io`.
+
+### Instalação nativa (sem Docker)
+
+```bash
+MODO=native sh instalar.sh
+```
+
+Requer Node.js 22.5+. O script clona em `~/puxador`, instala dependências e cria o `iniciar.sh`.
 
 ### Manual
 

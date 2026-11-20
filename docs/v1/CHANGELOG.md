@@ -4,6 +4,19 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.2] — 2026-11-20
+
+### Alterado
+
+- **`instalar.sh` agora instala via Docker com a imagem publicada**, igual ao orca3:
+  `curl -fsSL .../instalar.sh | sh` baixa `ghcr.io/samuelnoia/puxador:latest` e sobe o container —
+  sem Node, sem npm e sem clonar o código. A instalação nativa virou opção: `MODO=native sh instalar.sh`.
+- O instalador espera o `/api/health` responder antes de exibir o endereço, reaproveita a pasta de
+  dados do CasaOS/ZimaOS (`/DATA/AppData/puxador/data`) e aceita `IMAGE`, `NOME`, `DATA_DIR`.
+- Se a imagem não estiver acessível, tenta construir a partir do código e, se não houver código,
+  orienta o `docker login ghcr.io`.
+- Documentação de instalação no Linux reescrita para os dois modos (Docker padrão e nativo).
+
 ## [1.0.1] — 2026-11-18
 
 ### Corrigido
