@@ -4,6 +4,13 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.4] — 2026-11-20
+
+### Corrigido
+
+- Teste de escrita do `entrypoint.sh` passou a usar `touch` (presente no Alpine) em vez de `test`, que
+  pode não existir como binário e gerava aviso falso de permissão a cada inicialização.
+
 ## [1.0.3] — 2026-11-20
 
 ### Corrigido

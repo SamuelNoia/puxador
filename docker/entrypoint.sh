@@ -14,7 +14,10 @@ if [ "$(id -u)" = "0" ]; then
   chown -R node:node "$DATA_DIR" 2>/dev/null || true
   chmod u+rwx "$DATA_DIR" 2>/dev/null || true
 
-  if ! su-exec node test -w "$DATA_DIR" 2>/dev/null; then
+  # teste de escrita real (touch existe no Alpine; "test" nem sempre como binario)
+  if su-exec node touch "$DATA_DIR/.puxador-escrita" 2>/dev/null; then
+    rm -f "$DATA_DIR/.puxador-escrita" 2>/dev/null || true
+  else
     echo "[puxador] AVISO: sem permissao de escrita em $DATA_DIR." >&2
     echo "[puxador] Monte um volume gravavel, por exemplo: -v /opt/puxador/data:/data" >&2
   fi
