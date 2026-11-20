@@ -77,12 +77,37 @@ mas você pode trocar linha a linha.
 | Texto limpo | remove espaços duplicados e das pontas |
 | Sim / Não | converte `1/0`, `S/N`, `true/false` |
 
+### Relacionamentos (trazer o nome que está em outra tabela)
+
+Quando a tabela principal guarda só o **Id** de outra (ex.: `item.IdFabricante`) e você precisa do
+**nome** (`fabricante.Descricao`), use o card **Relacionamentos**:
+
+1. Clique em **+ relacionamento**.
+2. Escolha a **tabela relacionada** (ex.: `fabricante`).
+3. Confirme as colunas da ligação — o sistema já sugere:
+   - *Coluna desta tabela*: `IdFabricante`
+   - *Coluna da outra tabela*: `Id`
+4. Marque em **quais colunas trazer** (ex.: `Descricao`).
+5. A coluna aparece na grade de colunas com a etiqueta do relacionamento — renomeie e formate como
+   qualquer outra. Pode trazer várias colunas da mesma tabela, e criar até **4 relacionamentos**.
+
+O SQL gerado usa `LEFT JOIN`, então itens **sem** fabricante continuam aparecendo (com a coluna vazia).
+É possível também **filtrar** por uma coluna trazida pelo relacionamento — o campo aparece na lista de
+filtros com o nome `fabricante → Descricao`.
+
+> Prefere não usar relacionamento? Crie uma **view** no banco com o join e puxe a view.
+
 ### Filtros
 
 Clique em **+ filtro**. Cada linha tem coluna, operador e valor:
 
 `igual a`, `diferente de`, `contém`, `começa com`, `maior que`, `maior ou igual`, `menor que`,
-`menor ou igual`, `está vazio`, `não está vazio`.
+`menor ou igual`, **`entre (período)`**, `está vazio`, `não está vazio`.
+
+**Datas e horas:** quando a coluna é de data, o campo de valor vira um **calendário** (`data`) ou
+**data e hora** (`data e hora`) — dá para escolher no calendário **ou digitar direto**
+(`dd/mm/aaaa` e `hh:mm`). No operador **entre**, aparecem dois campos (de / até); se a coluna tiver
+hora e você informar só a data final, o sistema inclui até `23:59:59` do último dia.
 
 Os filtros são combinados com **E** (todos precisam ser verdadeiros).
 Os valores vão como parâmetros para o banco — não há risco de injeção.
@@ -101,6 +126,8 @@ Clique em **Puxar dados** para ir à tela 3.
 
 ## 3 · Resultado
 
+- **← Voltar** retorna para a tela anterior **na mesma posição** (filtros, colunas e relacionamentos
+  continuam como estavam, sem perder a rolagem).
 - **Prévia** das linhas na tela, com os cabeçalhos já renomeados.
 - **Linhas**, **total no banco** e **tempo** da consulta.
 - **SQL gerado** (útil para conferir ou reaproveitar).

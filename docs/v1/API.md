@@ -54,17 +54,42 @@ Resposta de uma conexão (a senha **nunca** é devolvida):
   "conexaoId": 1,
   "schema": null,
   "tabela": "item",
-  "colunas": ["Id", "Descricao", "ValorVendaVarejo"],
-  "filtros": [{ "column": "FlagAtivo", "op": "eq", "value": "1" }],
-  "ordem": { "column": "Descricao", "dir": "asc" },
+  "selecao": [
+    { "alias": "Id", "column": "Id", "table": null },
+    { "alias": "Descricao", "column": "Descricao", "table": null },
+    { "alias": "j1_Descricao", "column": "Descricao", "table": "j1" }
+  ],
+  "juncoes": [
+    { "alias": "j1", "tabela": "fabricante", "esquerda": "IdFabricante", "direita": "Id" }
+  ],
+  "filtros": [
+    { "table": "j1", "column": "Descricao", "op": "eq", "value": "FERTAK" },
+    { "table": null, "column": "DtMovto", "op": "between", "value": "2024-09-01", "value2": "2024-12-31 23:59:59" }
+  ],
+  "ordem": { "table": null, "column": "Descricao", "dir": "asc" },
   "limite": 100,
   "mapeamento": [
     { "origem": "Id", "destino": "cod produto", "formato": "codigo" },
     { "origem": "Descricao", "destino": "descricao", "formato": "maiusculo" },
-    { "origem": "ValorVendaVarejo", "destino": "valor unitario", "formato": "moeda", "decimais": 2 }
+    { "origem": "j1_Descricao", "destino": "fabricante", "formato": "texto" }
   ]
 }
 ```
+
+**Relacionamentos (`juncoes`)** — cada item vira um `LEFT JOIN` na tabela principal:
+
+| Campo | Descrição |
+|---|---|
+| `alias` | identificador usado em `selecao`/`filtros` (`j1`, `j2`…). Opcional; o servidor gera `j1`, `j2`… |
+| `tabela` | tabela relacionada |
+| `esquerda` | coluna **da tabela principal** (a chave estrangeira) |
+| `direita` | coluna **da tabela relacionada** (normalmente `Id`) |
+| `esquema` | schema, para PostgreSQL |
+
+**Seleção (`selecao`)**: `alias` é o nome que a linha terá no JSON; `table: null` = tabela principal,
+`table: "j1"` = coluna vinda do relacionamento. O `origem` do mapeamento usa o mesmo alias.
+
+Sem `selecao`, o formato antigo continua valendo: `"colunas": ["Id", "Descricao"]`.
 
 Resposta:
 
@@ -96,7 +121,11 @@ Responde o arquivo binário com `Content-Disposition: attachment`.
 ### Operadores de filtro
 
 `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `like` (contém), `notlike`, `starts` (começa com),
-`ends` (termina com), `null`, `notnull`, `in` (lista separada por vírgula).
+`ends` (termina com), **`between`** (usa `value` e `value2`), `null`, `notnull`,
+`in` (lista separada por vírgula).
+
+Datas aceitam `YYYY-MM-DD` ou `YYYY-MM-DDTHH:mm` / `YYYY-MM-DD HH:mm:ss` — o servidor normaliza para
+o formato de cada banco.
 
 ## Mapeamentos salvos
 

@@ -4,6 +4,27 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.1.0] — 2026-11-20
+
+### Adicionado
+
+- **Relacionamentos (LEFT JOIN)**: trazer colunas de outra tabela a partir da chave estrangeira —
+  ex.: `item.IdFabricante` → `fabricante.Descricao`, resolvendo o nome no lugar do Id. Até 4
+  relacionamentos por extração, com seleção de quais colunas trazer e opção de **filtrar** por elas.
+- **Filtros de data com calendário**: campos `date` e `datetime-local` (escolha no calendário ou
+  digitação manual) e novo operador **entre (período)**, que inclui o dia final inteiro quando a
+  coluna tem hora.
+- **Botão “← Voltar”** na tela de resultado.
+
+### Alterado
+
+- A navegação entre as telas **preserva a posição de rolagem** de cada uma — voltar para “Puxar dados”
+  mantém o usuário onde ele estava (filtros, colunas), sem pular para o topo.
+- `src/query.js` reescrito: SELECT com aliases explícitos, joins e filtros por dialeto
+  (MySQL/MariaDB, PostgreSQL, Firebird), mantendo compatibilidade com o formato antigo de `colunas`.
+- Firebird: aliases entre aspas preservam o nome exato (não força mais maiúsculas).
+- Autoteste passou a validar o SQL gerado (join, período, placeholders por banco): **27 verificações**.
+
 ## [1.0.4] — 2026-11-20
 
 ### Corrigido

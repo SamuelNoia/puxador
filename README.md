@@ -28,8 +28,8 @@ maiúsculas. Você ajusta isso na tela e exporta.
 | Tela | O que faz |
 |---|---|
 | **1 · Conexões** | cadastro do servidor (IP, porta, base, usuário, senha), com botão **Testar conexão** antes de salvar |
-| **2 · Puxar dados** | lista as tabelas e as colunas do banco, permite marcar colunas, **renomear** cada uma para o nome que vai na planilha, escolher a **formatação** (texto, número, moeda, data, maiúsculo…), filtros e limite |
-| **3 · Resultado** | prévia dos dados, contagem de registros, SQL gerado e exportação em **Excel (.xlsx)** ou **CSV** |
+| **2 · Puxar dados** | lista as tabelas e as colunas do banco, permite marcar colunas, **renomear** cada uma para o nome que vai na planilha, escolher a **formatação** (texto, número, moeda, data, maiúsculo…), **relacionar tabelas** (`item.IdFabricante` → `fabricante.Descricao`), filtros (inclusive data com calendário e período) e limite |
+| **3 · Resultado** | prévia dos dados, contagem de registros, SQL gerado e exportação em **Excel (.xlsx)** ou **CSV** — com botão **Voltar** que preserva o que você já tinha configurado |
 
 ## Bancos suportados (v1)
 

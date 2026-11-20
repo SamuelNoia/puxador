@@ -129,13 +129,9 @@ export async function query(cfg, spec) {
   const inicio = Date.now();
   try {
     const rows = await run(db, sql, params);
-    const colunas = rows.length ? Object.keys(rows[0]).map((k) => k.toUpperCase()) : [];
-    const normalizadas = rows.map((r) => {
-      const out = {};
-      for (const [k, v] of Object.entries(r)) out[k.toUpperCase()] = v;
-      return out;
-    });
-    return { sql, colunas, linhas: normalizadas, ms: Date.now() - inicio };
+    // os aliases vao entre aspas, entao o Firebird devolve exatamente o nome pedido
+    const colunas = rows.length ? Object.keys(rows[0]) : [];
+    return { sql, colunas, linhas: rows, ms: Date.now() - inicio };
   } finally {
     await detach(db);
   }

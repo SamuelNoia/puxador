@@ -6,6 +6,7 @@
 //   TEST_KIND=mysql TEST_HOST=10.0.1.67 TEST_PORT=3307 TEST_DB=z_prod \
 //   TEST_USER=z_mat TEST_PASS=z2025 TEST_TABLE=item node tools/selftest.js
 import zlib from 'node:zlib';
+import { buildSelect, buildCount } from '../src/query.js';
 
 const BASE = process.env.BASE_URL || `http://127.0.0.1:${process.env.PORT || 8790}`;
 
@@ -32,8 +33,46 @@ function ok(nome, condicao, detalhe = '') {
   }
 }
 
-async function api(caminho, opcoes = {}) {
-  const resp = await fetch(BASE + caminho, {
+/** Testes do gerador de SQL (sem banco): join entre tabelas e filtros de data. */
+function testarSql() {
+  const spec = {
+    kind: 'mysql',
+    table: 'item',
+    select: [
+      { alias: 'Id', column: 'Id', table: null },
+      { alias: 'j1_Descricao', column: 'Descricao', table: 'j1' },
+    ],
+    joins: [{ alias: 'j1', table: 'fabricante', left: 'IdFabricante', right: 'Id' }],
+    filters: [
+      { table: 'j1', column: 'Descricao', op: 'eq', value: 'FERTAK' },
+      { table: null, column: 'DtMovto', op: 'between', value: '2024-09-01', value2: '2024-12-31' },
+    ],
+    orderBy: { table: null, column: 'Id', dir: 'desc' },
+    limit: 10,
+  };
+
+  const my = buildSelect(spec);
+  ok('sql mysql: LEFT JOIN', my.sql.includes('LEFT JOIN `fabricante` AS j1 ON j1.`Id` = t0.`IdFabricante`'), my.sql);
+  ok('sql mysql: filtro na tabela relacionada', my.sql.includes('j1.`Descricao` = ?'));
+  ok('sql mysql: filtro entre datas', my.sql.includes('BETWEEN ? AND ?'));
+  ok('sql mysql: ordenacao e limite', /ORDER BY t0\.`Id` DESC LIMIT 10$/.test(my.sql), my.sql);
+  ok('sql mysql: 3 parametros', my.params.length === 3, String(my.params.length));
+
+  const pg = buildSelect({ ...spec, kind: 'postgres' });
+  ok('sql postgres: placeholders $1/$2/$3', pg.sql.includes('$1') && pg.sql.includes('$3') && !pg.sql.includes('?'));
+
+  const fb = buildSelect({ ...spec, kind: 'firebird' });
+  ok('sql firebird: FIRST 10', fb.sql.startsWith('SELECT FIRST 10 '), fb.sql.slice(0, 40));
+  ok('sql firebird: aspas duplas', fb.sql.includes('"fabricante"'));
+
+  const count = buildCount(spec);
+  ok('sql count com join', count.sql.startsWith('SELECT COUNT(*)') && count.sql.includes('LEFT JOIN'));
+
+  const semJoin = buildSelect({ kind: 'mysql', table: 'x', columns: ['a', 'b'], filters: [], limit: 0 });
+  ok('sql sem join (compativel)', semJoin.sql === 'SELECT t0.`a` AS `a`, t0.`b` AS `b` FROM `x` AS t0', semJoin.sql);
+}
+
+async function api(caminho, opcoes = {}) {  const resp = await fetch(BASE + caminho, {
     headers: { 'Content-Type': 'application/json' },
     ...opcoes,
     body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
@@ -49,6 +88,8 @@ async function api(caminho, opcoes = {}) {
 
 async function main() {
   console.log(`\nPuxador de Dados — autoteste (${BASE})\n`);
+
+  testarSql();
 
   const saude = await api('/api/health');
   ok('servidor responde /api/health', saude.ok === true);

@@ -1,6 +1,6 @@
-﻿// Rotas de extracao: previa, contagem, exportacao e mapeamentos salvos.
+// Rotas de extracao: previa, contagem, exportacao e mapeamentos salvos.
 import path from 'node:path';
-import { route, HttpError, sendDownload, sendJson } from '../web.js';
+import { route, HttpError, sendDownload } from '../web.js';
 import { all, get, run, nowIso } from '../db.js';
 import { decrypt } from '../crypto.js';
 import { driver } from '../drivers/index.js';
@@ -31,22 +31,62 @@ function validarPull(body) {
   if (!body.tabela) throw new HttpError(400, 'Escolha uma tabela.');
 }
 
-/** Monta o spec que vai para o driver. */
+/**
+ * Monta o spec do driver.
+ * juncoes: [{ tabela, esquema, esquerda, direita }]  (LEFT JOIN na tabela principal)
+ * selecao: [{ alias, column, table }]                (table = null | 'j1' | 'j2')
+ */
 function montarSpec(cfg, body, limite) {
+  const juncoes = (Array.isArray(body.juncoes) ? body.juncoes : [])
+    .filter((j) => j && j.tabela && j.esquerda && j.direita)
+    .slice(0, 4)
+    .map((j, i) => ({
+      // o front manda o alias (j1, j2...) para as colunas nao mudarem de dono ao remover um join
+      alias: /^j\d+$/.test(String(j.alias || '')) ? String(j.alias) : `j${i + 1}`,
+      schema: j.esquema || undefined,
+      table: j.tabela,
+      left: j.esquerda,
+      right: j.direita,
+    }));
+
+  const selecao = (Array.isArray(body.selecao) ? body.selecao : [])
+    .filter((s) => s && s.column)
+    .map((s) => ({
+      alias: String(s.alias || s.column).replace(/[^\w]/g, '_'),
+      column: s.column,
+      table: s.table && s.table !== 'principal' ? s.table : null,
+    }));
+
+  const filtros = (Array.isArray(body.filtros) ? body.filtros : [])
+    .filter((f) => f && f.column)
+    .map((f) => ({
+      table: f.table && f.table !== 'principal' ? f.table : null,
+      column: f.column,
+      op: f.op || 'eq',
+      value: f.value,
+      value2: f.value2,
+    }));
+
   return {
     kind: cfg.kind,
     schema: body.schema || undefined,
     table: body.tabela,
-    columns: Array.isArray(body.colunas) ? body.colunas.filter(Boolean) : [],
-    filters: Array.isArray(body.filtros)
-      ? body.filtros.filter((f) => f && f.column)
-      : [],
+    joins: juncoes,
+    select: selecao,
+    columns: (Array.isArray(body.colunas) ? body.colunas : []).filter(Boolean),
+    filters: filtros,
     orderBy: body.ordem && body.ordem.column ? body.ordem : null,
     limit: limite,
   };
 }
 
-/** Mapeamento efetivo (destino/formato) com padroes sensatos. */
+/** Nomes que virao nas linhas (alias do SELECT). */
+function colunasResultado(spec, res) {
+  if (spec.select.length) return spec.select.map((s) => s.alias);
+  if (spec.columns.length) return spec.columns;
+  return res.colunas;
+}
+
 function montarMapeamento(body, colunasBanco, tipos) {
   const enviado = Array.isArray(body.mapeamento) ? body.mapeamento.filter((m) => m && m.origem) : [];
   if (enviado.length) {
@@ -64,13 +104,12 @@ function montarMapeamento(body, colunasBanco, tipos) {
   }));
 }
 
-function aplicarMapeamento(colunasBanco, mapeamento, linhas) {
+function aplicarMapeamento(mapeamento, linhas) {
   return linhas.map((linha) => {
     const out = {};
     for (const m of mapeamento) {
       const bruto = Object.prototype.hasOwnProperty.call(linha, m.origem) ? linha[m.origem] : null;
-      const item = aplicarFormato(bruto, m.formato, m.decimais);
-      out[m.destino] = item;
+      out[m.destino] = aplicarFormato(bruto, m.formato, m.decimais);
     }
     return out;
   });
@@ -96,9 +135,9 @@ export function registrar() {
     const res = await drv.query(cfg, spec).catch((e) => {
       throw new HttpError(400, mensagemAmigavel(cfg.kind, e));
     });
-    const colunasBanco = (spec.columns.length ? spec.columns : res.colunas);
+    const colunasBanco = colunasResultado(spec, res);
     const mapeamento = montarMapeamento(body, colunasBanco, tipos);
-    const linhas = aplicarMapeamento(colunasBanco, mapeamento, res.linhas);
+    const linhas = aplicarMapeamento(mapeamento, res.linhas);
 
     let total = null;
     try {
@@ -154,7 +193,6 @@ export function registrar() {
     const res = await drv.query(cfg, spec).catch((e) => {
       throw new HttpError(400, mensagemAmigavel(cfg.kind, e));
     });
-    const colunasBanco = (spec.columns.length ? spec.columns : res.colunas);
 
     const mapeamento = body.mapeamento
       .filter((m) => m && m.origem)
@@ -165,20 +203,19 @@ export function registrar() {
         decimais: m.decimais === undefined || m.decimais === null || m.decimais === '' ? undefined : Number(m.decimais),
       }));
 
-    const linhas = aplicarMapeamento(colunasBanco, mapeamento, res.linhas);
+    const linhas = aplicarMapeamento(mapeamento, res.linhas);
     const carimbo = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
     const base = path.basename(String(body.arquivo || body.tabela || 'dados')).replace(/[^\w.-]+/g, '_');
 
-    let buffer;
-    let nome;
     if (formato === 'csv') {
-      buffer = gerarCsv({ mapeamento, linhas });
-      nome = `${base}_${carimbo}.csv`;
-      sendDownload(ctx.res, buffer, nome, 'text/csv; charset=utf-8');
+      sendDownload(ctx.res, gerarCsv({ mapeamento, linhas }), `${base}_${carimbo}.csv`, 'text/csv; charset=utf-8');
     } else {
-      buffer = gerarXlsx({ titulo: String(body.titulo || body.tabela || 'Dados'), mapeamento, linhas });
-      nome = `${base}_${carimbo}.xlsx`;
-      sendDownload(ctx.res, buffer, nome, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      sendDownload(
+        ctx.res,
+        gerarXlsx({ titulo: String(body.titulo || body.tabela || 'Dados'), mapeamento, linhas }),
+        `${base}_${carimbo}.xlsx`,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
     }
 
     run(
@@ -253,4 +290,3 @@ export function registrar() {
     return { resultado: aplicarFormato(valor, body.formato || 'original', body.decimais) };
   });
 }
-

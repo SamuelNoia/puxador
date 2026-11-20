@@ -156,6 +156,17 @@
         </div>
       </div>
 
+      <div class="card" id="card-juncoes" hidden>
+        <div class="card-head">
+          <div>
+            <h2>Relacionamentos</h2>
+            <span class="muted">traga o nome que está em outra tabela a partir do Id (ex.: item.IdFabricante → fabricante.Descricao)</span>
+          </div>
+          <button class="btn ghost sm" id="btn-add-juncao">+ relacionamento</button>
+        </div>
+        <div class="card-body" id="lista-juncoes"></div>
+      </div>
+
       <div class="grid-2" id="card-filtros" hidden>
         <div class="card">
           <div class="card-head">
@@ -201,7 +212,10 @@
     <section id="tela-resultado" class="tela">
       <div class="card">
         <div class="card-head">
-          <h2>Resultado</h2>
+          <div class="acoes-inline">
+            <button class="btn" id="btn-voltar">← Voltar</button>
+            <h2>Resultado</h2>
+          </div>
           <div class="acoes-inline">
             <button class="btn" id="btn-export-csv">Exportar CSV</button>
             <button class="btn primary" id="btn-export-xlsx">Exportar Excel</button>
