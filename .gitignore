@@ -5,3 +5,7 @@ data/
 .DS_Store
 .npm-cache/
 tmp/
+
+_*.mjs
+_*.tmp
+_st.json
