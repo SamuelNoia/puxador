@@ -95,6 +95,11 @@ info "Dados:   $DATA_DIR"
 
 mkdir -p "$DATA_DIR" || erro "Nao foi possivel criar $DATA_DIR"
 
+# o container roda como usuario node (uid 1000); o volume precisa ser gravavel por ele
+if [ "$(id -u)" = "0" ]; then
+  chown -R 1000:1000 "$DATA_DIR" 2>/dev/null || true
+fi
+
 if docker ps -a --format '{{.Names}}' | grep -qx "$NOME"; then
   info "Removendo container anterior (os dados em $DATA_DIR sao preservados)"
   docker rm -f "$NOME" >/dev/null

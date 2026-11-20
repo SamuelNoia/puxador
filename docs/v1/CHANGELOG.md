@@ -4,6 +4,19 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.3] — 2026-11-20
+
+### Corrigido
+
+- **Container em loop de reinicio com `unable to open database file`.** O volume de dados era montado
+  com dono do host (root), mas o processo roda como usuário `node` (uid 1000) e o SQLite não conseguia
+  criar `puxador.db`. A imagem agora tem um `entrypoint.sh` que ajusta o dono de `/data`, valida a
+  escrita e só então executa a aplicação como `node` (via `su-exec`).
+- O `instalar.sh` faz `chown 1000:1000` na pasta de dados quando executado como root, cobrindo volumes
+  criados por versões anteriores.
+- Se o banco não puder ser aberto, o servidor agora encerra com uma mensagem explicando a causa e o
+  comando de correção, em vez de apenas o stack trace.
+
 ## [1.0.2] — 2026-11-20
 
 ### Alterado

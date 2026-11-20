@@ -8,7 +8,24 @@ import { matchRoute, parseCookies, readJson, sendJson, serveStatic, HttpError } 
 import { loginAtivo, sessaoValida, COOKIE_NAME } from './src/auth.js';
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
-openDb(DB_FILE);
+
+try {
+  openDb(DB_FILE);
+} catch (err) {
+  console.error('\n' + '='.repeat(64));
+  console.error('  NAO FOI POSSIVEL ABRIR O BANCO DE DADOS');
+  console.error(`  Arquivo: ${DB_FILE}`);
+  console.error(`  Erro:    ${err.message}`);
+  if (/unable to open|SQLITE_CANTOPEN|SQLITE_READONLY|EACCES|EPERM|readonly/i.test(err.message)) {
+    console.error('');
+    console.error('  Causa provavel: a pasta de dados nao tem permissao de escrita.');
+    console.error(`  Ajuste o dono/permissao de ${DATA_DIR}:`);
+    console.error(`    sudo chown -R 1000:1000 ${DATA_DIR}   # usuario node dentro do container`);
+    console.error(`    chmod u+rwx ${DATA_DIR}`);
+  }
+  console.error('='.repeat(64) + '\n');
+  process.exit(1);
+}
 registrarRotas();
 
 const ROTAS_LIVRES = new Set(['/api/health', '/api/login', '/api/sessao']);

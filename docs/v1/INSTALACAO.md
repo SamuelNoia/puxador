@@ -178,4 +178,6 @@ Problemas comuns:
 | `ER_ACCESS_DENIED_ERROR` | usuário/senha do banco |
 | `ENOTFOUND` | host digitado errado |
 | Firebird: `I/O error ... database` | caminho do `.fdb` inválido **no servidor** (não na sua máquina) |
+| Firebird: `Unavailable database` | caminho com IP, alias do IBExpert ou só o nome do arquivo |
 | Página em branco | abra o console do navegador; confira se `public/` foi copiado |
+| Container reiniciando com `unable to open database file` | volume `/data` sem permissão para o uid 1000. A partir da 1.0.3 a imagem corrige sozinha; em volumes antigos: `sudo chown -R 1000:1000 /opt/puxador/data` e recrie o container |

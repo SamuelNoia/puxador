@@ -1,6 +1,6 @@
 {
   "name": "puxador-dados",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Portal web para puxar dados de MySQL, MariaDB, PostgreSQL e Firebird e gerar planilhas",
   "type": "module",
   "private": true,
