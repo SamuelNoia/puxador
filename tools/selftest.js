@@ -33,27 +33,27 @@ function ok(nome, condicao, detalhe = '') {
   }
 }
 
-/** Testes do gerador de SQL (sem banco): join entre tabelas e filtros de data. */
+/** Testes do gerador de SQL (sem banco): join entre tabelas, encadeamento e filtros de data. */
 function testarSql() {
   const spec = {
     kind: 'mysql',
     table: 'item',
     select: [
-      { alias: 'Id', column: 'Id', table: null },
-      { alias: 'j1_Descricao', column: 'Descricao', table: 'j1' },
+      { alias: 't0_Id', column: 'Id', table: 't0' },
+      { alias: 't1_Descricao', column: 'Descricao', table: 't1' },
     ],
-    joins: [{ alias: 'j1', table: 'fabricante', left: 'IdFabricante', right: 'Id' }],
+    joins: [{ alias: 't1', de: 't0', table: 'fabricante', left: 'IdFabricante', right: 'Id' }],
     filters: [
-      { table: 'j1', column: 'Descricao', op: 'eq', value: 'FERTAK' },
-      { table: null, column: 'DtMovto', op: 'between', value: '2024-09-01', value2: '2024-12-31' },
+      { table: 't1', column: 'Descricao', op: 'eq', value: 'FERTAK' },
+      { table: 't0', column: 'DtMovto', op: 'between', value: '2024-09-01', value2: '2024-12-31' },
     ],
-    orderBy: { table: null, column: 'Id', dir: 'desc' },
+    orderBy: { table: 't0', column: 'Id', dir: 'desc' },
     limit: 10,
   };
 
   const my = buildSelect(spec);
-  ok('sql mysql: LEFT JOIN', my.sql.includes('LEFT JOIN `fabricante` AS j1 ON j1.`Id` = t0.`IdFabricante`'), my.sql);
-  ok('sql mysql: filtro na tabela relacionada', my.sql.includes('j1.`Descricao` = ?'));
+  ok('sql mysql: LEFT JOIN', my.sql.includes('LEFT JOIN `fabricante` AS t1 ON t1.`Id` = t0.`IdFabricante`'), my.sql);
+  ok('sql mysql: filtro na tabela relacionada', my.sql.includes('t1.`Descricao` = ?'));
   ok('sql mysql: filtro entre datas', my.sql.includes('BETWEEN ? AND ?'));
   ok('sql mysql: ordenacao e limite', /ORDER BY t0\.`Id` DESC LIMIT 10$/.test(my.sql), my.sql);
   ok('sql mysql: 3 parametros', my.params.length === 3, String(my.params.length));
@@ -70,6 +70,31 @@ function testarSql() {
 
   const semJoin = buildSelect({ kind: 'mysql', table: 'x', columns: ['a', 'b'], filters: [], limit: 0 });
   ok('sql sem join (compativel)', semJoin.sql === 'SELECT t0.`a` AS `a`, t0.`b` AS `b` FROM `x` AS t0', semJoin.sql);
+
+  // tres tabelas: item -> fabricante -> pais
+  const cadeia = buildSelect({
+    kind: 'mysql',
+    table: 'item',
+    select: [
+      { alias: 'a', column: 'Id', table: 't0' },
+      { alias: 'b', column: 'Descricao', table: 't1' },
+      { alias: 'c', column: 'Nome', table: 't2' },
+    ],
+    joins: [
+      { alias: 't1', de: 't0', table: 'fabricante', left: 'IdFabricante', right: 'Id' },
+      { alias: 't2', de: 't1', table: 'pais', left: 'IdPais', right: 'Id' },
+    ],
+  });
+  ok('sql encadeado t0 -> t1 -> t2',
+    cadeia.sql.includes('LEFT JOIN `pais` AS t2 ON t2.`Id` = t1.`IdPais`'), cadeia.sql);
+
+  let erroClaro = false;
+  try {
+    buildSelect({ kind: 'mysql', table: 'item', select: [{ alias: 'x', column: 'Id', table: 't9' }], joins: [{ alias: 't9', de: 'inexistente', table: 'x', left: 'a', right: 'b' }] });
+  } catch (e) {
+    erroClaro = /ainda nao foi adicionada/i.test(e.message);
+  }
+  ok('sql join invalido gera erro claro', erroClaro);
 }
 
 async function api(caminho, opcoes = {}) {  const resp = await fetch(BASE + caminho, {

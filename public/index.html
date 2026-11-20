@@ -108,34 +108,37 @@
     <section id="tela-puxar" class="tela">
       <div class="card">
         <div class="card-head">
-          <h2>Origem dos dados</h2>
-          <span class="muted">escolha a conexão, a tabela e o que vai sair em cada coluna</span>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <label class="field grow">
+          <div>
+            <h2>1 · Tabelas e colunas</h2>
+            <span class="muted">adicione as tabelas e escolha as colunas de cada uma; depois ligue as tabelas e filtre</span>
+          </div>
+          <div class="acoes-inline">
+            <label class="field inline-field">
               <span>Conexão</span>
               <select id="sel-conexao"></select>
             </label>
-            <label class="field" id="campo-schema" hidden>
+            <label class="field inline-field" id="campo-schema" hidden>
               <span>Schema</span>
               <select id="sel-schema"></select>
             </label>
-            <label class="field grow">
-              <span>Tabela</span>
-              <input id="filtro-tabela" placeholder="filtrar tabelas…" />
-              <select id="sel-tabela" size="8" class="lista-tabelas"></select>
-            </label>
+            <button class="btn sm" id="btn-add-fonte" disabled>+ adicionar tabela</button>
           </div>
+        </div>
+        <div class="card-body" id="lista-fontes">
+          <p class="muted vazio">Escolha a conexão e clique em “+ adicionar tabela”.</p>
         </div>
       </div>
 
       <div class="card" id="card-colunas" hidden>
         <div class="card-head">
-          <h2>Colunas e formatação</h2>
+          <div>
+            <h2>2 · Colunas e formatação</h2>
+            <span class="muted">marque o que vai sair, renomeie o cabeçalho e escolha a formatação</span>
+          </div>
           <div class="acoes-inline">
-            <button class="btn ghost sm" id="btn-todas">marcar todas</button>
-            <button class="btn ghost sm" id="btn-nenhuma">desmarcar</button>
+            <input id="busca-colunas" type="search" placeholder="pesquisar coluna ou tabela…" class="busca" />
+            <button class="btn ghost sm" id="btn-todas">marcar visíveis</button>
+            <button class="btn ghost sm" id="btn-nenhuma">desmarcar visíveis</button>
             <span class="muted" id="resumo-colunas"></span>
           </div>
         </div>
@@ -159,10 +162,9 @@
       <div class="card" id="card-juncoes" hidden>
         <div class="card-head">
           <div>
-            <h2>Relacionamentos</h2>
-            <span class="muted">traga o nome que está em outra tabela a partir do Id (ex.: item.IdFabricante → fabricante.Descricao)</span>
+            <h2>3 · Relacionamentos</h2>
+            <span class="muted">ligue cada tabela a uma tabela anterior pela chave (ex.: item.IdFabricante = fabricante.Id)</span>
           </div>
-          <button class="btn ghost sm" id="btn-add-juncao">+ relacionamento</button>
         </div>
         <div class="card-body" id="lista-juncoes"></div>
       </div>
@@ -170,7 +172,7 @@
       <div class="grid-2" id="card-filtros" hidden>
         <div class="card">
           <div class="card-head">
-            <h2>Filtros</h2>
+            <h2>4 · Filtros</h2>
             <button class="btn ghost sm" id="btn-add-filtro">+ filtro</button>
           </div>
           <div class="card-body" id="lista-filtros">
@@ -178,7 +180,7 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-head"><h2>Ordenação e limite</h2></div>
+          <div class="card-head"><h2>5 · Ordenação e limite</h2></div>
           <div class="card-body">
             <div class="row">
               <label class="field grow">

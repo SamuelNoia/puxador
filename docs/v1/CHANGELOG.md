@@ -4,6 +4,25 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.2.0] — 2026-11-21
+
+### Adicionado
+
+- **Fluxo por etapas na tela 2**: `1 · Tabelas e colunas` → `2 · Colunas e formatação` →
+  `3 · Relacionamentos` → `4 · Filtros` → `5 · Ordenação e limite`. Você adiciona a primeira tabela e
+  suas colunas, depois a segunda, e assim por diante — o relacionamento é montado no fim.
+- **Várias tabelas por extração** (até 6), com **encadeamento**: `item → fabricante → país`.
+- **Pesquisa em toda lista grande**: filtro de tabelas por fonte, busca na grade de colunas
+  (com “marcar/desmarcar visíveis”), busca de coluna nos filtros e na ordenação.
+- `tools/check-ui.js` (`npm run check:ui`): confere IDs, classes e textos corrompidos sem navegador.
+
+### Corrigido
+
+- **Acentos quebrados na interface** (`item Â· ~11043`, `â€œ coluna â€�`): o `app.js` havia sido
+  regravado em ANSI por um script de manutenção. Arquivo reescrito em UTF-8 e o `check:ui` passou a
+  detectar esse tipo de corrupção.
+- Colunas trazidas de relacionamento mantêm o alias estável ao remover uma fonte intermediária.
+
 ## [1.1.0] — 2026-11-20
 
 ### Adicionado

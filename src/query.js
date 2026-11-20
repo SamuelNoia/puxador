@@ -65,17 +65,22 @@ export function normalizarValor(coluna, valor) {
 function montarFrom(kind, spec) {
   const schema = spec.schema;
   const table = spec.table;
-  const from = `${quoteTable(kind, schema, table)} AS ${PRINCIPAL}`;
-  const joins = (spec.joins || []).slice(0, 4);
-  const partes = [from];
+  const partes = [`${quoteTable(kind, schema, table)} AS ${PRINCIPAL}`];
+  const existentes = new Set([PRINCIPAL]);
 
-  joins.forEach((j, i) => {
+  (spec.joins || []).slice(0, 6).forEach((j, i) => {
     if (!j || !j.table || !j.left || !j.right) return;
-    const alias = String(j.alias || `j${i + 1}`).replace(/[^\w]/g, '');
+    const alias = String(j.alias || `t${i + 1}`).replace(/[^\w]/g, '');
+    if (!alias || existentes.has(alias)) throw new Error('Relacionamento com alias repetido.');
+    const de = String(j.de || j.from || PRINCIPAL);
+    if (!existentes.has(de)) throw new Error('Relacionamento aponta para uma tabela que ainda nao foi adicionada.');
+    if (!/^[A-Za-z_]\w*$/.test(de)) throw new Error('Relacionamento invalido.');
+
     const alvo = quoteTable(kind, j.schema, j.table);
-    const esq = quoteIdent(kind, j.left);
-    const dir = quoteIdent(kind, j.right);
-    partes.push(`LEFT JOIN ${alvo} AS ${alias} ON ${alias}.${dir} = ${PRINCIPAL}.${esq}`);
+    const esq = quoteIdent(kind, j.left);   // coluna da tabela "de"
+    const dir = quoteIdent(kind, j.right);  // coluna da tabela nova
+    partes.push(`LEFT JOIN ${alvo} AS ${alias} ON ${alias}.${dir} = ${de}.${esq}`);
+    existentes.add(alias);
   });
 
   return partes.join(' ');

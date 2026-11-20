@@ -60,6 +60,7 @@ small { font-size: 12px; }
 }
 
 .tabs { display: flex; gap: 6px; flex: 1; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
 
 .tab {
   border: 1px solid transparent;
@@ -322,6 +323,43 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tag-join { background: #eef3ff; color: #3a5ea8; margin-left: 6px; }
 
 .card-head .acoes-inline h2 { margin: 0 4px 0 0; }
+
+/* ---------------------------------------------------------------- fontes (tabelas) */
+.fonte {
+  border: 1px solid var(--linha);
+  border-radius: 9px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #fbfcfe;
+}
+
+.fonte-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.fonte-head .muted { flex: 1; }
+
+.fonte-titulo { font-weight: 600; font-size: 13px; color: var(--azul); }
+
+.inline-field { flex-direction: row; align-items: center; gap: 6px; margin-bottom: 0; }
+.inline-field > span { white-space: nowrap; }
+.inline-field > select { min-width: 180px; }
+
+.busca { width: 200px; padding: 6px 10px; }
+
+/* linha de grupo na grade de colunas */
+.tabela-mapa tr.grupo td {
+  background: var(--azul-claro);
+  color: var(--azul);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 7px 10px;
+  position: sticky;
+  top: 30px;
+}
 
 /* ---------------------------------------------------------------- toast */
 .toast {

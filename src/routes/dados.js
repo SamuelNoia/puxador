@@ -39,10 +39,11 @@ function validarPull(body) {
 function montarSpec(cfg, body, limite) {
   const juncoes = (Array.isArray(body.juncoes) ? body.juncoes : [])
     .filter((j) => j && j.tabela && j.esquerda && j.direita)
-    .slice(0, 4)
+    .slice(0, 6)
     .map((j, i) => ({
-      // o front manda o alias (j1, j2...) para as colunas nao mudarem de dono ao remover um join
-      alias: /^j\d+$/.test(String(j.alias || '')) ? String(j.alias) : `j${i + 1}`,
+      // o front manda o alias (t1, t2...) e a origem (de) para permitir encadear tabelas
+      alias: /^[A-Za-z_]\w*$/.test(String(j.alias || '')) ? String(j.alias) : `t${i + 1}`,
+      de: /^[A-Za-z_]\w*$/.test(String(j.de || '')) ? String(j.de) : 't0',
       schema: j.esquema || undefined,
       table: j.tabela,
       left: j.esquerda,

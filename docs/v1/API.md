@@ -55,41 +55,42 @@ Resposta de uma conexão (a senha **nunca** é devolvida):
   "schema": null,
   "tabela": "item",
   "selecao": [
-    { "alias": "Id", "column": "Id", "table": null },
-    { "alias": "Descricao", "column": "Descricao", "table": null },
-    { "alias": "j1_Descricao", "column": "Descricao", "table": "j1" }
+    { "alias": "t0_Id", "column": "Id", "table": "t0" },
+    { "alias": "t0_Descricao", "column": "Descricao", "table": "t0" },
+    { "alias": "t1_Descricao", "column": "Descricao", "table": "t1" }
   ],
   "juncoes": [
-    { "alias": "j1", "tabela": "fabricante", "esquerda": "IdFabricante", "direita": "Id" }
+    { "alias": "t1", "de": "t0", "tabela": "fabricante", "esquerda": "IdFabricante", "direita": "Id" }
   ],
   "filtros": [
-    { "table": "j1", "column": "Descricao", "op": "eq", "value": "FERTAK" },
-    { "table": null, "column": "DtMovto", "op": "between", "value": "2024-09-01", "value2": "2024-12-31 23:59:59" }
+    { "table": "t1", "column": "Descricao", "op": "eq", "value": "FERTAK" },
+    { "table": "t0", "column": "DtMovto", "op": "between", "value": "2024-09-01", "value2": "2024-12-31 23:59:59" }
   ],
-  "ordem": { "table": null, "column": "Descricao", "dir": "asc" },
+  "ordem": { "table": "t0", "column": "Descricao", "dir": "asc" },
   "limite": 100,
   "mapeamento": [
-    { "origem": "Id", "destino": "cod produto", "formato": "codigo" },
-    { "origem": "Descricao", "destino": "descricao", "formato": "maiusculo" },
-    { "origem": "j1_Descricao", "destino": "fabricante", "formato": "texto" }
+    { "origem": "t0_Id", "destino": "cod produto", "formato": "codigo" },
+    { "origem": "t0_Descricao", "destino": "descricao", "formato": "maiusculo" },
+    { "origem": "t1_Descricao", "destino": "fabricante", "formato": "texto" }
   ]
 }
 ```
 
-**Relacionamentos (`juncoes`)** — cada item vira um `LEFT JOIN` na tabela principal:
+**Tabelas relacionadas (`juncoes`)** — cada item vira um `LEFT JOIN`; podem ser encadeados:
 
 | Campo | Descrição |
 |---|---|
-| `alias` | identificador usado em `selecao`/`filtros` (`j1`, `j2`…). Opcional; o servidor gera `j1`, `j2`… |
+| `alias` | identificador da tabela nova (`t1`, `t2`…). A tabela principal é sempre `t0` |
+| `de` | alias da tabela **anterior** à qual esta se liga (`t0`, `t1`…) — permite `item → fabricante → pais` |
 | `tabela` | tabela relacionada |
-| `esquerda` | coluna **da tabela principal** (a chave estrangeira) |
-| `direita` | coluna **da tabela relacionada** (normalmente `Id`) |
+| `esquerda` | coluna **da tabela `de`** (a chave estrangeira) |
+| `direita` | coluna **da tabela nova** (normalmente `Id`) |
 | `esquema` | schema, para PostgreSQL |
 
-**Seleção (`selecao`)**: `alias` é o nome que a linha terá no JSON; `table: null` = tabela principal,
-`table: "j1"` = coluna vinda do relacionamento. O `origem` do mapeamento usa o mesmo alias.
+**Seleção (`selecao`)**: `alias` é o nome que a coluna terá no JSON; `table` é o alias da tabela
+(`t0` = principal, `t1`, `t2`… = relacionadas). O `origem` do mapeamento usa o mesmo alias.
 
-Sem `selecao`, o formato antigo continua valendo: `"colunas": ["Id", "Descricao"]`.
+O formato antigo continua aceito: `"colunas": ["Id", "Descricao"]` (tabela única, sem relacionamento).
 
 Resposta:
 

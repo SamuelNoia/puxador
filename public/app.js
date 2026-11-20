@@ -1,4 +1,6 @@
 // Puxador de Dados - interface (vanilla JS, sem build).
+//
+// Fluxo da tela 2: 1) adicionar tabelas e escolher colunas  2) formatar  3) relacionar  4) filtrar.
 
 const S = {
   bancos: [],
@@ -7,17 +9,20 @@ const S = {
   conexaoId: null,
   conexao: null,
   schema: null,
-  tabela: null,
   tabelas: [],
-  colunasMain: [],
-  juncoes: [],          // [{ tabela, esquema, esquerda, direita, colunas:[{nome,tipo}], traz:[nomes], carregando }]
-  mapa: new Map(),      // chave -> { marcada, destino, formato, decimais, rotulo, tipo, coluna, tabela }
-  filtros: [],          // [{ key, op, value, value2 }]
+  fontes: [],        // [{ alias, tabela, colunas: [], busca, carregando }]
+  juncoes: [],       // [{ de, para, esquerda, direita }]
+  mapa: new Map(),   // 't0.Id' -> { marcada, destino, formato, decimais, tipo, coluna, alias, grupo }
+  filtros: [],       // [{ key, op, value, value2 }]
+  buscaColunas: '',
+  buscaFiltro: '',
   ordemKey: '',
   dir: 'asc',
   resultado: null,
   scroll: {},
   telaAtual: 'conexoes',
+  prevLimit: 500,
+  proxAlias: 1,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -47,7 +52,7 @@ async function api(caminho, opcoes = {}) {
 
   if (resp.status === 401 && !caminho.startsWith('/api/login')) {
     if (!pedindoLogin && (await exigirLogin())) return api(caminho, opcoes);
-    throw new Error('Acesso nÃ£o autorizado.');
+    throw new Error('Acesso não autorizado.');
   }
 
   const tipo = resp.headers.get('content-type') || '';
@@ -90,7 +95,6 @@ function exigirLogin() {
 }
 
 /* ---------------------------------------------------------------- navegacao */
-// Guarda a posicao de rolagem de cada tela e devolve ao voltar.
 function irPara(tela) {
   if (S.telaAtual === tela) return;
   S.scroll[S.telaAtual] = window.scrollY;
@@ -100,7 +104,7 @@ function irPara(tela) {
   $$('.tab').forEach((b) => b.classList.toggle('ativo', b.dataset.tela === tela));
 
   const destino = S.scroll[tela] || 0;
-  requestAnimationFrame(() => window.scrollTo({ top: destino, behavior: 'instant' in window ? 'instant' : 'auto' }));
+  requestAnimationFrame(() => window.scrollTo(0, destino));
 }
 
 function bloquearResultado(bloquear) {
@@ -129,7 +133,7 @@ function ajustarCamposPorBanco() {
     mariadb: 'Nome da base (database) no servidor MariaDB.',
     postgres: 'Nome da base (database) no PostgreSQL.',
     firebird: 'Caminho completo do arquivo NO SERVIDOR (ex.: C:\\ecosis\\dados\\ECODADOS.ECO). '
-      + 'NÃ£o use alias do IBExpert nem coloque o IP aqui.',
+      + 'Não use alias do IBExpert nem coloque o IP aqui.',
   }[kind] || '';
   $('#ajuda-base').textContent = ajuda;
   $('#label-base').textContent = kind === 'firebird'
@@ -139,14 +143,13 @@ function ajustarCamposPorBanco() {
   $('#campo-schema').hidden = kind !== 'postgres';
 }
 
-/** Valida o formulÃ¡rio antes de enviar. Devolve a mensagem de erro ou null. */
 function validarFormulario(corpo) {
   if (corpo.kind === 'firebird') {
     const caminho = String(corpo.base || '').trim();
     const hostNoCaminho = /^([^\\/]{2,}):[\\/]/.exec(caminho);
     if (hostNoCaminho && !/^[A-Za-z]$/.test(hostNoCaminho[1])) {
-      return 'O caminho nÃ£o deve incluir o servidor. Deixe o IP sÃ³ no campo "Servidor" '
-        + 'e aqui apenas o caminho do arquivo â€” ex.: C:\\ecosis\\dados\\ECODADOS.ECO';
+      return 'O caminho não deve incluir o servidor. Deixe o IP só no campo "Servidor" '
+        + 'e aqui apenas o caminho do arquivo — ex.: C:\\ecosis\\dados\\ECODADOS.ECO';
     }
     if (caminho && !/[\\/]/.test(caminho) && !/\.[A-Za-z0-9]{2,5}$/.test(caminho)) {
       return 'Isso parece um alias do IBExpert. Informe o caminho completo do arquivo no servidor '
@@ -167,7 +170,7 @@ function limparFormulario() {
   $('#senha').value = '';
   $('#schema').value = '';
   $('#ssl').checked = false;
-  $('#titulo-form').textContent = 'Nova conexÃ£o';
+  $('#titulo-form').textContent = 'Nova conexão';
   $('#ajuda-senha').textContent = '';
   $('#resultado-teste').hidden = true;
   $('#kind').value = 'mysql';
@@ -201,7 +204,7 @@ function renderConexoes() {
   const alvo = $('#lista-conexoes');
   $('#contador-conexoes').textContent = S.conexoes.length ? `${S.conexoes.length} cadastrada(s)` : '';
   if (!S.conexoes.length) {
-    alvo.innerHTML = '<p class="muted vazio">Nenhuma conexÃ£o ainda. Cadastre a primeira ao lado.</p>';
+    alvo.innerHTML = '<p class="muted vazio">Nenhuma conexão ainda. Cadastre a primeira ao lado.</p>';
     return;
   }
   alvo.innerHTML = S.conexoes.map((c) => `
@@ -209,7 +212,7 @@ function renderConexoes() {
       <span class="tag">${esc(c.kind)}</span>
       <div class="dados">
         <strong>${esc(c.nome)}</strong>
-        <span>${esc(c.host)}:${c.port} Â· ${esc(c.database)} Â· ${esc(c.username)}</span>
+        <span>${esc(c.host)}:${c.port} · ${esc(c.database)} · ${esc(c.username)}</span>
       </div>
       <button class="btn sm" data-acao="testar">testar</button>
       <button class="btn sm" data-acao="usar">usar</button>
@@ -221,7 +224,7 @@ function renderConexoes() {
 function preencherSelectConexoes() {
   const sel = $('#sel-conexao');
   const atual = S.conexaoId;
-  sel.innerHTML = '<option value="">â€” escolha â€”</option>' + S.conexoes
+  sel.innerHTML = '<option value="">— escolha —</option>' + S.conexoes
     .map((c) => `<option value="${c.id}" ${c.id === atual ? 'selected' : ''}>${esc(c.nome)} (${esc(c.kind)})</option>`)
     .join('');
 }
@@ -248,7 +251,7 @@ async function editarConexao(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* ---------------------------------------------------------------- tabelas e colunas */
+/* ---------------------------------------------------------------- fontes / tabelas */
 async function carregarSchemas() {
   if (!S.conexao || S.conexao.kind !== 'postgres') {
     $('#campo-schema').hidden = true;
@@ -266,24 +269,16 @@ async function carregarSchemas() {
 
 async function carregarTabelas() {
   if (!S.conexaoId) return;
-  $('#sel-tabela').innerHTML = '<option>carregandoâ€¦</option>';
   try {
     const q = S.schema ? `?schema=${encodeURIComponent(S.schema)}` : '';
     const { tabelas } = await api(`/api/conexoes/${S.conexaoId}/tabelas${q}`);
     S.tabelas = tabelas;
-    renderTabelas();
   } catch (e) {
-    $('#sel-tabela').innerHTML = '';
+    S.tabelas = [];
     toast(e.message, 'erro');
   }
-}
-
-function renderTabelas() {
-  const filtro = $('#filtro-tabela').value.trim().toLowerCase();
-  const lista = (S.tabelas || []).filter((t) => !filtro || t.nome.toLowerCase().includes(filtro));
-  $('#sel-tabela').innerHTML = lista
-    .map((t) => `<option value="${esc(t.nome)}">${esc(t.nome)}${t.tipo === 'view' ? ' (view)' : ''}${t.linhas ? ` Â· ~${t.linhas}` : ''}</option>`)
-    .join('');
+  $('#btn-add-fonte').disabled = !S.tabelas.length;
+  renderFontes();
 }
 
 async function colunasDaTabela(tabela) {
@@ -293,81 +288,166 @@ async function colunasDaTabela(tabela) {
   return colunas;
 }
 
-async function carregarColunas(tabela) {
-  if (!tabela) return;
-  $('#card-colunas').hidden = true;
-  $('#card-juncoes').hidden = true;
-  $('#card-filtros').hidden = true;
+function fontePorAlias(alias) {
+  return S.fontes.find((f) => f.alias === alias);
+}
+
+function adicionarFonte(tabela = '') {
+  // t0 é sempre a principal; as demais recebem um alias novo (nunca reaproveitado)
+  const alias = S.fontes.length === 0 ? 't0' : `t${S.proxAlias++}`;
+  S.fontes.push({ alias, tabela: '', colunas: [], busca: '', carregando: false });
+  renderFontes();
+  if (tabela) trocarTabelaFonte(S.fontes.length - 1, tabela);
+}
+
+/** Refiltra só a lista de tabelas de uma fonte, sem recriar o bloco (mantém o foco no campo). */
+function atualizarOpcoesFonte(i) {
+  const f = S.fontes[i];
+  const bloco = document.querySelector(`.fonte[data-i="${i}"]`);
+  const select = bloco?.querySelector('select[data-papel="tabela"]');
+  if (!f || !select) return;
+  const busca = (f.busca || '').toLowerCase();
+  const lista = (S.tabelas || [])
+    .filter((t) => !busca || t.nome.toLowerCase().includes(busca))
+    .slice(0, 400);
+  select.innerHTML = '<option value="">— escolha —</option>' + lista
+    .map((t) => `<option value="${esc(t.nome)}" ${t.nome === f.tabela ? 'selected' : ''}>${esc(t.nome)}${t.linhas ? ` · ~${t.linhas}` : ''}</option>`)
+    .join('');
+}
+
+async function trocarTabelaFonte(i, tabela) {
+  const f = S.fontes[i];
+  if (!f || !tabela) return;
+  f.tabela = tabela;
+  f.carregando = true;
+
+  if (i > 0) {
+    const juncao = S.juncoes.find((j) => j.para === f.alias);
+    if (!juncao) S.juncoes.push({ de: palpiteFontePai(tabela), para: f.alias, esquerda: '', direita: '' });
+  }
+  renderFontes();
+
   try {
-    const colunas = await colunasDaTabela(tabela);
-    S.tabela = tabela;
-    S.colunasMain = colunas;
-    S.juncoes = [];
-    S.mapa.clear();
-    S.filtros = [];
+    f.colunas = await colunasDaTabela(tabela);
+    if (i > 0) {
+      const j = S.juncoes.find((x) => x.para === f.alias);
+      const pai = fontePorAlias(j.de);
+      j.direita = f.colunas.find((c) => c.chave === 'PRI')?.nome
+        || f.colunas.find((c) => c.nome.toLowerCase() === 'id')?.nome
+        || f.colunas[0]?.nome || '';
+      j.esquerda = adivinharChaveEstrangeira(pai, tabela) || pai?.colunas[0]?.nome || '';
+    }
+  } catch (e) {
+    toast(e.message, 'erro');
+    f.colunas = [];
+  } finally {
+    f.carregando = false;
     reconstruirMapa();
-    S.ordemKey = colunas.find((c) => c.chave === 'PRI')?.nome || colunas[0]?.nome || '';
-    S.dir = 'asc';
+    renderFontes();
     renderColunas();
     renderJuncoes();
     renderFiltros();
     renderOrdem();
-    $('#card-colunas').hidden = false;
-    $('#card-juncoes').hidden = false;
-    $('#card-filtros').hidden = false;
-  } catch (e) {
-    toast(e.message, 'erro');
+    atualizarCartoes();
   }
 }
 
-/**
- * Recria S.mapa a partir das colunas da tabela principal + colunas trazidas pelos relacionamentos,
- * preservando o que o usuario ja configurou (chave = nome unico da coluna).
- */
-function reconstruirMapa() {
-  const novo = new Map();
+/** Procura na fonte "pai" a coluna que aponta para a tabela nova (IdFabricante, CodGrupo...). */
+function adivinharChaveEstrangeira(pai, tabelaNova) {
+  if (!pai) return '';
+  const alvo = String(tabelaNova).toLowerCase();
+  const c = pai.colunas.find((x) => x.nome.toLowerCase() === `id${alvo}`)
+    || pai.colunas.find((x) => x.nome.toLowerCase().endsWith(`id${alvo}`))
+    || pai.colunas.find((x) => x.nome.toLowerCase() === `cod${alvo}`);
+  return c ? c.nome : '';
+}
 
-  for (const c of S.colunasMain) {
-    const antigo = S.mapa.get(c.nome);
-    novo.set(c.nome, antigo || {
-      marcada: true,
-      destino: c.nome,
-      formato: sugerir(c.tipo),
-      decimais: '',
-      rotulo: c.nome,
-      tipo: c.tipo,
-      coluna: c.nome,
-      tabela: null,
-      grupo: 'principal',
-    });
-    novo.get(c.nome).tipo = c.tipo;
+/** Em qual fonte já adicionada está a chave que liga a tabela nova? */
+function palpiteFontePai(tabelaNova) {
+  for (const f of S.fontes) {
+    const achou = f.colunas.some((c) => c.nome.toLowerCase() === `id${String(tabelaNova).toLowerCase()}`);
+    if (achou) return f.alias;
+  }
+  return S.fontes[0]?.alias || 't0';
+}
+
+function removerFonte(i) {
+  const f = S.fontes[i];
+  if (!f || i === 0) return;
+  S.fontes.splice(i, 1);
+  S.juncoes = S.juncoes
+    .filter((j) => j.para !== f.alias)
+    .map((j) => (j.de === f.alias ? { ...j, de: S.fontes[0].alias, esquerda: '' } : j));
+  reconstruirMapa();
+  renderFontes();
+  renderColunas();
+  renderJuncoes();
+  renderFiltros();
+  renderOrdem();
+  atualizarCartoes();
+}
+
+function renderFontes() {
+  const alvo = $('#lista-fontes');
+  if (!S.fontes.length) {
+    alvo.innerHTML = '<p class="muted vazio">Escolha a conexão e clique em “+ adicionar tabela”.</p>';
+    return;
   }
 
-  S.juncoes.forEach((j, i) => {
-    const alias = j.alias || `j${i + 1}`;
-    for (const nome of j.traz || []) {
-      const info = (j.colunas || []).find((c) => c.nome === nome) || { nome, tipo: '' };
-      const chave = `${alias}.${nome}`;
+  alvo.innerHTML = S.fontes.map((f, i) => {
+    const busca = (f.busca || '').toLowerCase();
+    const lista = (S.tabelas || []).filter((t) => !busca || t.nome.toLowerCase().includes(busca)).slice(0, 400);
+    const opcoes = '<option value="">— escolha —</option>' + lista
+      .map((t) => `<option value="${esc(t.nome)}" ${t.nome === f.tabela ? 'selected' : ''}>${esc(t.nome)}${t.linhas ? ` · ~${t.linhas}` : ''}</option>`)
+      .join('');
+    const marcadas = [...S.mapa.entries()].filter(([k, m]) => k.startsWith(`${f.alias}.`) && m.marcada).length;
+
+    return `
+      <div class="fonte" data-i="${i}">
+        <div class="fonte-head">
+          <span class="fonte-titulo">Fonte ${i + 1}${i === 0 ? ' <span class="tag">principal</span>' : ''}</span>
+          <span class="muted">${f.tabela ? `${f.colunas.length} colunas · ${marcadas} marcada(s)` : 'nenhuma tabela escolhida'}</span>
+          ${i > 0 ? '<button class="btn sm danger" data-papel="remover-fonte" title="remover tabela">remover</button>' : ''}
+        </div>
+        <div class="row">
+          <label class="field" style="max-width:260px">
+            <span>Pesquisar tabela</span>
+            <input type="search" data-papel="busca-tabela" value="${esc(f.busca)}" placeholder="digite parte do nome…" />
+          </label>
+          <label class="field grow">
+            <span>Tabela (${(S.tabelas || []).length} disponíveis)</span>
+            <select data-papel="tabela" ${f.carregando ? 'disabled' : ''}>${opcoes}</select>
+          </label>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ---------------------------------------------------------------- mapa de colunas */
+function reconstruirMapa() {
+  const novo = new Map();
+  S.fontes.forEach((f, idx) => {
+    for (const c of f.colunas) {
+      const chave = `${f.alias}.${c.nome}`;
       const antigo = S.mapa.get(chave);
+      const padrao = idx === 0;
       novo.set(chave, antigo || {
-        marcada: true,
-        destino: `${j.tabela}_${nome}`,
-        formato: sugerir(info.tipo),
+        marcada: padrao,
+        destino: c.nome,
+        formato: sugerir(c.tipo),
         decimais: '',
-        rotulo: `${j.tabela} â†’ ${nome}`,
-        tipo: info.tipo,
-        coluna: nome,
-        tabela: alias,
-        grupo: j.tabela,
+        tipo: c.tipo,
+        coluna: c.nome,
+        alias: f.alias,
+        grupo: f.tabela || `Fonte ${idx + 1}`,
       });
-      const atual = novo.get(chave);
-      atual.tipo = info.tipo;
-      atual.rotulo = `${j.tabela} â†’ ${nome}`;
-      atual.tabela = alias;
-      atual.grupo = j.tabela;
+      const item = novo.get(chave);
+      item.tipo = c.tipo;
+      item.alias = f.alias;
+      item.coluna = c.nome;
+      item.grupo = f.tabela || `Fonte ${idx + 1}`;
     }
   });
-
   S.mapa = novo;
 }
 
@@ -377,21 +457,44 @@ function renderColunas() {
     corpo.innerHTML = '<tr><td colspan="6" class="muted vazio">Sem colunas.</td></tr>';
     return;
   }
-  corpo.innerHTML = [...S.mapa.entries()].map(([chave, m]) => {
-    const opcoes = S.formatos
-      .map((f) => `<option value="${f.id}" ${m.formato === f.id ? 'selected' : ''}>${esc(f.label)}</option>`)
-      .join('');
-    const etiqueta = m.grupo === 'principal' ? '' : ` <span class="tag tag-join">${esc(m.grupo)}</span>`;
-    return `
-      <tr data-chave="${esc(chave)}" class="${m.marcada ? '' : 'desmarcada'}">
-        <td><input type="checkbox" data-papel="marcar" ${m.marcada ? 'checked' : ''} /></td>
-        <td><strong>${esc(m.coluna)}</strong>${m.grupo === 'principal' ? '' : etiqueta}</td>
-        <td class="tipo-col">${esc(m.tipo)}</td>
-        <td><input type="text" data-papel="destino" value="${esc(m.destino)}" /></td>
-        <td><select data-papel="formato">${opcoes}</select></td>
-        <td><input type="number" data-papel="decimais" value="${esc(m.decimais)}" min="0" max="6" /></td>
-      </tr>`;
-  }).join('');
+
+  const busca = S.buscaColunas.trim().toLowerCase();
+  const linhas = [];
+
+  S.fontes.forEach((f, idx) => {
+    if (!f.colunas.length) return;
+    const visiveis = f.colunas.filter((c) => !busca
+      || c.nome.toLowerCase().includes(busca)
+      || String(f.tabela || '').toLowerCase().includes(busca));
+    if (!visiveis.length) return;
+
+    if (S.fontes.length > 1) {
+      linhas.push(`<tr class="grupo"><td colspan="6">Fonte ${idx + 1} · ${esc(f.tabela || 'sem tabela')}
+        <span class="muted">(${visiveis.length} coluna(s))</span></td></tr>`);
+    }
+
+    for (const c of visiveis) {
+      const chave = `${f.alias}.${c.nome}`;
+      const m = S.mapa.get(chave);
+      if (!m) continue;
+      const opcoes = S.formatos
+        .map((x) => `<option value="${x.id}" ${m.formato === x.id ? 'selected' : ''}>${esc(x.label)}</option>`)
+        .join('');
+      linhas.push(`
+        <tr data-chave="${esc(chave)}" class="${m.marcada ? '' : 'desmarcada'}">
+          <td><input type="checkbox" data-papel="marcar" ${m.marcada ? 'checked' : ''} /></td>
+          <td><strong>${esc(c.nome)}</strong>${c.chave ? ' <span class="tag">PK</span>' : ''}</td>
+          <td class="tipo-col">${esc(c.tipo)}</td>
+          <td><input type="text" data-papel="destino" value="${esc(m.destino)}" /></td>
+          <td><select data-papel="formato">${opcoes}</select></td>
+          <td><input type="number" data-papel="decimais" value="${esc(m.decimais)}" min="0" max="6" /></td>
+        </tr>`);
+    }
+  });
+
+  corpo.innerHTML = linhas.length
+    ? linhas.join('')
+    : '<tr><td colspan="6" class="muted vazio">Nenhuma coluna encontrada para a pesquisa.</td></tr>';
   atualizarResumoColunas();
 }
 
@@ -401,108 +504,50 @@ function atualizarResumoColunas() {
 }
 
 /* ---------------------------------------------------------------- relacionamentos */
-function adicionarJuncao() {
-  const sugestao = (S.tabelas || []).find((t) => !S.juncoes.some((j) => j.tabela === t.nome))?.nome || '';
-  S.proxJuncaoId = (S.proxJuncaoId || 0) + 1;
-  S.juncoes.push({ id: S.proxJuncaoId, alias: `j${S.proxJuncaoId}`, tabela: '', esquema: S.schema, esquerda: '', direita: '', colunas: [], traz: [], carregando: false });
-  renderJuncoes();
-  if (sugestao) trocarTabelaJuncao(S.juncoes.length - 1, sugestao);
-}
-
-function removerJuncao(i) {
-  S.juncoes.splice(i, 1);
-  reconstruirMapa();
-  renderJuncoes();
-  renderColunas();
-  renderFiltros();
-  renderOrdem();
-}
-
-function palpiteColunaPrincipal(tabelaRel) {
-  const alvo = String(tabelaRel).toLowerCase();
-  const achou = S.colunasMain.find((c) => c.nome.toLowerCase() === `id${alvo}`)
-    || S.colunasMain.find((c) => c.nome.toLowerCase() === `id_${alvo}`)
-    || S.colunasMain.find((c) => c.nome.toLowerCase().endsWith(`id${alvo}`));
-  if (achou) return achou.nome;
-  const idLike = S.colunasMain.find((c) => /^id/i.test(c.nome) && /fabric|fornec|cliente|grupo|marca/i.test(c.nome));
-  return idLike ? idLike.nome : '';
-}
-
-async function trocarTabelaJuncao(i, tabela) {
-  const j = S.juncoes[i];
-  if (!j) return;
-  j.tabela = tabela;
-  j.carregando = true;
-  j.colunas = [];
-  j.traz = [];
-  j.direita = '';
-  j.esquerda = palpiteColunaPrincipal(tabela);
-  renderJuncoes();
-  try {
-    const colunas = await colunasDaTabela(tabela);
-    j.colunas = colunas;
-    const pk = colunas.find((c) => c.chave === 'PRI')?.nome
-      || colunas.find((c) => c.nome.toLowerCase() === 'id')?.nome
-      || colunas[0]?.nome || '';
-    j.direita = pk;
-    // sugere trazer a primeira coluna de texto (normalmente a descricao)
-    const texto = colunas.find((c) => /char|text|varchar|string/i.test(c.tipo) && c.nome.toLowerCase() !== pk.toLowerCase());
-    j.traz = texto ? [texto.nome] : [];
-  } catch (e) {
-    toast(e.message, 'erro');
-  } finally {
-    j.carregando = false;
-    reconstruirMapa();
-    renderJuncoes();
-    renderColunas();
-    renderFiltros();
-    renderOrdem();
-  }
-}
-
 function renderJuncoes() {
   const alvo = $('#lista-juncoes');
-  if (!S.juncoes.length) {
-    alvo.innerHTML = '<p class="muted vazio">Nenhum relacionamento. Use â€œ+ relacionamentoâ€ para trazer, por exemplo, o nome do fabricante no lugar do IdFabricante.</p>';
+  const juncoes = S.juncoes.filter((j) => fontePorAlias(j.para) && fontePorAlias(j.de));
+
+  if (S.fontes.length < 2) {
+    alvo.innerHTML = '<p class="muted vazio">Com uma única tabela não é preciso relacionamento.</p>';
     return;
   }
-  alvo.innerHTML = S.juncoes.map((j, i) => {
-    const tabelas = '<option value="">â€” tabela â€”</option>' + (S.tabelas || [])
-      .map((t) => `<option value="${esc(t.nome)}" ${t.nome === j.tabela ? 'selected' : ''}>${esc(t.nome)}</option>`)
+
+  alvo.innerHTML = juncoes.map((j) => {
+    const fonte = fontePorAlias(j.para);
+    const pai = fontePorAlias(j.de);
+    const idx = S.fontes.indexOf(fonte);
+
+    const opcoesPai = S.fontes
+      .filter((f) => f.alias !== j.para && f.colunas.length)
+      .map((f) => `<option value="${esc(f.alias)}" ${f.alias === j.de ? 'selected' : ''}>Fonte ${S.fontes.indexOf(f) + 1} · ${esc(f.tabela)}</option>`)
       .join('');
-    const colsMain = '<option value="">â€” coluna da tabela â€”</option>' + S.colunasMain
+    const colunasPai = (pai?.colunas || [])
       .map((c) => `<option value="${esc(c.nome)}" ${c.nome === j.esquerda ? 'selected' : ''}>${esc(c.nome)}</option>`)
       .join('');
-    const colsJoin = '<option value="">â€” coluna da outra tabela â€”</option>' + (j.colunas || [])
+    const colunasFilha = (fonte?.colunas || [])
       .map((c) => `<option value="${esc(c.nome)}" ${c.nome === j.direita ? 'selected' : ''}>${esc(c.nome)}</option>`)
-      .join('');
-    const chips = (j.colunas || [])
-      .filter((c) => /char|text|varchar|int|date|numeric|decimal/i.test(c.tipo))
-      .map((c) => `<label class="chip"><input type="checkbox" data-papel="trazer" data-col="${esc(c.nome)}" ${j.traz.includes(c.nome) ? 'checked' : ''}/> ${esc(c.nome)}</label>`)
       .join('');
 
     return `
-      <div class="juncao" data-i="${i}">
+      <div class="juncao" data-para="${esc(j.para)}">
         <div class="juncao-linha">
+          <span class="fonte-titulo">Fonte ${idx + 1} · ${esc(fonte?.tabela || '')}</span>
+          <span class="juncao-eq">ligada a</span>
           <label class="field">
-            <span>Tabela relacionada</span>
-            <select data-papel="tabela">${tabelas}</select>
+            <span>Tabela anterior</span>
+            <select data-papel="de">${opcoesPai}</select>
           </label>
-          <span class="juncao-eq">ligada por</span>
+          <span class="juncao-eq">por</span>
           <label class="field">
-            <span>Coluna desta tabela</span>
-            <select data-papel="esquerda">${colsMain}</select>
+            <span>Coluna de lá</span>
+            <select data-papel="esquerda">${colunasPai}</select>
           </label>
           <span class="juncao-eq">=</span>
           <label class="field">
-            <span>Coluna da outra tabela</span>
-            <select data-papel="direita">${colsJoin}</select>
+            <span>Coluna daqui</span>
+            <select data-papel="direita">${colunasFilha}</select>
           </label>
-          <button class="btn sm danger" data-papel="remover" title="remover">Ã—</button>
-        </div>
-        <div class="juncao-cols">
-          ${j.carregando ? '<span class="muted">carregando colunasâ€¦</span>' : (chips || '<span class="muted">escolha a tabela para ver as colunas</span>')}
-          <span class="muted">â† marque o que deve aparecer na planilha</span>
         </div>
       </div>`;
   }).join('');
@@ -522,9 +567,9 @@ function ehDataHora(tipo) {
 }
 
 const OPERADORES_UI = [
-  ['eq', 'igual a'], ['ne', 'diferente de'], ['like', 'contÃ©m'], ['starts', 'comeÃ§a com'],
+  ['eq', 'igual a'], ['ne', 'diferente de'], ['like', 'contém'], ['starts', 'começa com'],
   ['gt', 'maior que'], ['gte', 'maior ou igual'], ['lt', 'menor que'], ['lte', 'menor ou igual'],
-  ['between', 'entre (perÃ­odo)'], ['null', 'estÃ¡ vazio'], ['notnull', 'nÃ£o estÃ¡ vazio'],
+  ['between', 'entre (período)'], ['null', 'está vazio'], ['notnull', 'não está vazio'],
 ];
 
 function valorParaInput(valor, tipo) {
@@ -535,22 +580,32 @@ function valorParaInput(valor, tipo) {
 }
 
 function inputValor(f, i, papel, valor, tipo) {
-  const semValor = ['null', 'notnull'].includes(f.op);
-  if (semValor) return '';
-  const classe = papel === 'valor' ? '' : ' class="input-ate"';
+  if (['null', 'notnull'].includes(f.op)) return '';
   if (ehDataHora(tipo)) {
-    return `<input type="datetime-local" data-i="${i}" data-papel="${papel}" value="${esc(valorParaInput(valor, tipo))}"${classe} />`;
+    return `<input type="datetime-local" data-i="${i}" data-papel="${papel}" value="${esc(valorParaInput(valor, tipo))}" />`;
   }
   if (ehData(tipo)) {
-    return `<input type="date" data-i="${i}" data-papel="${papel}" value="${esc(valorParaInput(valor, tipo))}"${classe} />`;
+    return `<input type="date" data-i="${i}" data-papel="${papel}" value="${esc(valorParaInput(valor, tipo))}" />`;
   }
-  return `<input type="text" data-i="${i}" data-papel="${papel}" value="${esc(valor ?? '')}" placeholder="valor"${classe} />`;
+  return `<input type="text" data-i="${i}" data-papel="${papel}" value="${esc(valor ?? '')}" placeholder="valor" />`;
+}
+
+function opcoesColunasFiltro(selecionado) {
+  const busca = S.buscaFiltro.trim().toLowerCase();
+  const itens = [...S.mapa.entries()]
+    .filter(([chave, m]) => chave === selecionado
+      || !busca
+      || m.coluna.toLowerCase().includes(busca)
+      || String(m.grupo).toLowerCase().includes(busca));
+  return itens
+    .map(([chave, m]) => `<option value="${esc(chave)}" ${selecionado === chave ? 'selected' : ''}>${esc(S.fontes.length > 1 ? `${m.grupo} · ${m.coluna}` : m.coluna)}</option>`)
+    .join('');
 }
 
 function renderFiltros() {
   const alvo = $('#lista-filtros');
   if (!S.filtros.length) {
-    alvo.innerHTML = '<p class="muted vazio">Nenhum filtro. Todos os registros serÃ£o puxados.</p>';
+    alvo.innerHTML = '<p class="muted vazio">Nenhum filtro. Todos os registros serão puxados.</p>';
     return;
   }
   alvo.innerHTML = S.filtros.map((f, i) => {
@@ -558,39 +613,54 @@ function renderFiltros() {
     const opcoes = OPERADORES_UI
       .map(([v, l]) => `<option value="${v}" ${f.op === v ? 'selected' : ''}>${l}</option>`)
       .join('');
-    const colunas = [...S.mapa.entries()]
-      .map(([chave, m]) => `<option value="${esc(chave)}" ${f.key === chave ? 'selected' : ''}>${esc(m.grupo === 'principal' ? m.coluna : m.rotulo)}</option>`)
-      .join('');
     const entre = f.op === 'between';
     return `
       <div class="filtro-linha ${entre ? 'com-ate' : ''}" data-i="${i}">
-        <select data-papel="coluna">${colunas}</select>
+        <select data-papel="coluna">${opcoesColunasFiltro(f.key)}</select>
         <select data-papel="op">${opcoes}</select>
         <div class="filtro-valores">
           ${inputValor(f, i, 'valor', f.value, tipo)}
           ${entre ? inputValor(f, i, 'valor2', f.value2, tipo) : ''}
         </div>
-        <button class="btn sm danger" data-papel="remover" title="remover">Ã—</button>
+        <button class="btn sm danger" data-papel="remover" title="remover">×</button>
       </div>`;
   }).join('');
 }
 
 function renderOrdem() {
-  $('#sel-ordem').innerHTML = '<option value="">â€” sem ordenaÃ§Ã£o â€”</option>' + [...S.mapa.entries()]
-    .map(([chave, m]) => `<option value="${esc(chave)}" ${S.ordemKey === chave ? 'selected' : ''}>${esc(m.grupo === 'principal' ? m.coluna : m.rotulo)}</option>`)
+  const busca = S.buscaFiltro.trim().toLowerCase();
+  const itens = [...S.mapa.entries()].filter(([chave, m]) => chave === S.ordemKey
+    || !busca
+    || m.coluna.toLowerCase().includes(busca)
+    || String(m.grupo).toLowerCase().includes(busca));
+  $('#sel-ordem').innerHTML = '<option value="">— sem ordenação —</option>' + itens
+    .map(([chave, m]) => `<option value="${esc(chave)}" ${S.ordemKey === chave ? 'selected' : ''}>${esc(S.fontes.length > 1 ? `${m.grupo} · ${m.coluna}` : m.coluna)}</option>`)
     .join('');
   $('#sel-dir').value = S.dir;
 }
 
-/* ---------------------------------------------------------------- puxar */
-function corpoPuxar(extra = {}) {
+/* ---------------------------------------------------------------- montar consulta */
+function montarCorpo(extra = {}) {
+  const principal = S.fontes[0];
+  const juncoes = S.juncoes
+    .filter((j) => j.para && j.de && j.esquerda && j.direita && fontePorAlias(j.para)?.tabela)
+    .map((j) => ({
+      alias: j.para,
+      de: j.de,
+      tabela: fontePorAlias(j.para).tabela,
+      esquema: S.schema,
+      esquerda: j.esquerda,
+      direita: j.direita,
+    }));
+
+  const validos = new Set([principal?.alias || 't0', ...juncoes.map((j) => j.alias)]);
+
   const selecao = [];
   const mapeamento = [];
-
   for (const [chave, m] of S.mapa) {
-    if (!m.marcada) continue;                 // colunas desmarcadas nao vao no SELECT
+    if (!m.marcada || !validos.has(m.alias)) continue;
     const alias = chave.replace(/[^\w]/g, '_');
-    selecao.push({ alias, column: m.coluna, table: m.tabela });
+    selecao.push({ alias, column: m.coluna, table: m.alias });
     mapeamento.push({
       origem: alias,
       destino: (m.destino || m.coluna).trim(),
@@ -599,50 +669,54 @@ function corpoPuxar(extra = {}) {
     });
   }
 
-  const filtros = S.filtros
-    .filter((f) => f.key && !['null', 'notnull'].includes(f.op))
-    .map((f) => {
-      const m = S.mapa.get(f.key) || {};
-      let value = f.value;
-      let value2 = f.value2;
-      // "entre" com data e coluna de data/hora: inclui o dia final inteiro
-      if (f.op === 'between' && ehDataHora(m.tipo) && /^\d{4}-\d{2}-\d{2}$/.test(String(value2 || ''))) {
-        value2 = `${value2} 23:59:59`;
-      }
-      return { table: m.tabela || null, column: m.coluna, op: f.op, value, value2 };
-    })
-    .concat(S.filtros
-      .filter((f) => f.key && ['null', 'notnull'].includes(f.op))
-      .map((f) => {
-        const m = S.mapa.get(f.key) || {};
-        return { table: m.tabela || null, column: m.coluna, op: f.op };
-      }));
+  const filtros = [];
+  for (const f of S.filtros) {
+    const m = S.mapa.get(f.key);
+    if (!m || !validos.has(m.alias)) continue;
+    if (['null', 'notnull'].includes(f.op)) {
+      filtros.push({ table: m.alias, column: m.coluna, op: f.op });
+      continue;
+    }
+    let value = f.value;
+    let value2 = f.value2;
+    if (f.op === 'between' && ehDataHora(m.tipo) && /^\d{4}-\d{2}-\d{2}$/.test(String(value2 || ''))) {
+      value2 = `${value2} 23:59:59`;
+    }
+    filtros.push({ table: m.alias, column: m.coluna, op: f.op, value, value2 });
+  }
 
-  const ordemBase = S.ordemKey ? S.mapa.get(S.ordemKey) : null;
+  const ordem = S.ordemKey && S.mapa.get(S.ordemKey) && validos.has(S.mapa.get(S.ordemKey).alias)
+    ? { table: S.mapa.get(S.ordemKey).alias, column: S.mapa.get(S.ordemKey).coluna, dir: S.dir }
+    : null;
 
   return {
     conexaoId: S.conexaoId,
     schema: S.schema || undefined,
-    tabela: S.tabela,
+    tabela: principal?.tabela || '',
     selecao,
-    juncoes: S.juncoes
-      .filter((j) => j.tabela && j.esquerda && j.direita)
-      .map((j) => ({ alias: j.alias, tabela: j.tabela, esquema: j.esquema, esquerda: j.esquerda, direita: j.direita })),
+    juncoes,
     filtros,
-    ordem: ordemBase ? { table: ordemBase.tabela, column: ordemBase.coluna, dir: S.dir } : null,
-    limite: Number($('#limite').value) || 0,
+    ordem,
+    limite: Number($('#limite')?.value) || 0,
     mapeamento,
     tipos: [...S.mapa.entries()].map(([chave, m]) => ({ nome: chave.replace(/[^\w]/g, '_'), tipo: m.tipo })),
     ...extra,
   };
 }
 
+function atualizarCartoes() {
+  const temTabela = S.fontes.some((f) => f.tabela && f.colunas.length);
+  $('#card-colunas').hidden = !temTabela;
+  $('#card-juncoes').hidden = !temTabela || S.fontes.length < 2;
+  $('#card-filtros').hidden = !temTabela;
+}
+
 async function puxarDados() {
   const btn = $('#btn-previa');
   btn.disabled = true;
-  btn.textContent = 'Puxandoâ€¦';
+  btn.textContent = 'Puxando…';
   try {
-    const dados = await api('/api/puxar', { method: 'POST', body: corpoPuxar() });
+    const dados = await api('/api/puxar', { method: 'POST', body: montarCorpo() });
     S.resultado = dados;
     renderResultado(dados);
     bloquearResultado(false);
@@ -664,9 +738,9 @@ async function puxarDados() {
 async function contarRegistros() {
   const btn = $('#btn-contar');
   btn.disabled = true;
-  btn.textContent = 'Contandoâ€¦';
+  btn.textContent = 'Contando…';
   try {
-    const { total } = await api('/api/puxar/contar', { method: 'POST', body: corpoPuxar() });
+    const { total } = await api('/api/puxar/contar', { method: 'POST', body: montarCorpo() });
     const aviso = $('#aviso-puxar');
     aviso.hidden = false;
     aviso.className = 'aviso info';
@@ -695,7 +769,7 @@ function renderResultado(dados) {
   info.push(`<span>Linhas: <b>${dados.quantidade}</b></span>`);
   if (dados.total !== null && dados.total !== undefined) info.push(`<span>Total no banco: <b>${Number(dados.total).toLocaleString('pt-BR')}</b></span>`);
   info.push(`<span>Tempo: <b>${dados.ms} ms</b></span>`);
-  if (dados.truncado) info.push(`<span class="tag">prÃ©via limitada a ${dados.limite}</span>`);
+  if (dados.truncado) info.push(`<span class="tag">prévia limitada a ${dados.limite}</span>`);
   info.push(`<span class="muted">${esc(dados.sql || '')}</span>`);
   $('#info-resultado').innerHTML = info.join('');
 
@@ -711,10 +785,11 @@ function renderResultado(dados) {
 async function exportar(formato) {
   if (!S.resultado) return toast('Puxe os dados antes de exportar.', 'erro');
   try {
+    const corpo = montarCorpo({ formato, arquivo: S.fontes[0]?.tabela, titulo: S.fontes[0]?.tabela });
     const resp = await fetch('/api/exportar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(corpoPuxar({ formato, arquivo: S.tabela, titulo: S.tabela })),
+      body: JSON.stringify(corpo),
     });
     if (!resp.ok) {
       const erro = await resp.json().catch(() => ({ erro: `Erro ${resp.status}` }));
@@ -737,8 +812,9 @@ async function exportar(formato) {
 
 async function salvarMapeamento() {
   if (!S.resultado) return toast('Puxe os dados antes de salvar.', 'erro');
-  const nome = prompt('Nome do mapeamento (ex.: Produtos ERP):', `${S.tabela}`);
+  const nome = prompt('Nome do mapeamento (ex.: Produtos ERP):', `${S.fontes[0]?.tabela || ''}`);
   if (!nome) return;
+  const corpo = montarCorpo();
   try {
     await api('/api/mapeamentos', {
       method: 'POST',
@@ -746,13 +822,8 @@ async function salvarMapeamento() {
         conexaoId: S.conexaoId,
         nome,
         schema: S.schema,
-        tabela: S.tabela,
-        config: {
-          colunas: corpoPuxar().mapeamento,
-          filtros: S.filtros,
-          juncoes: corpoPuxar().juncoes,
-          limite: Number($('#limite').value) || 0,
-        },
+        tabela: corpo.tabela,
+        config: { colunas: corpo.mapeamento, filtros: corpo.filtros, juncoes: corpo.juncoes, limite: corpo.limite },
       },
     });
     toast('Mapeamento salvo.');
@@ -786,7 +857,7 @@ function ligarEventos() {
     try {
       if (id) await api(`/api/conexoes/${id}`, { method: 'PUT', body: corpo });
       else await api('/api/conexoes', { method: 'POST', body: corpo });
-      toast(id ? 'ConexÃ£o atualizada.' : 'ConexÃ£o salva.');
+      toast(id ? 'Conexão atualizada.' : 'Conexão salva.');
       limparFormulario();
       await carregarConexoes();
     } catch (e) {
@@ -805,14 +876,14 @@ function ligarEventos() {
       alvo.textContent = problema;
       return;
     }
-    alvo.textContent = 'Testandoâ€¦';
+    alvo.textContent = 'Testando…';
     try {
       const id = $('#conexao-id').value;
       const r = id && !corpo.senha
         ? await api(`/api/conexoes/${id}/testar`, { method: 'POST', body: corpo })
         : await api('/api/conexoes/testar', { method: 'POST', body: corpo });
       alvo.className = 'aviso ok';
-      alvo.textContent = `Conectado em ${r.ms} ms Â· versÃ£o ${r.versao || 'â€”'}`;
+      alvo.textContent = `Conectado em ${r.ms} ms · versão ${r.versao || '—'}`;
     } catch (e) {
       alvo.className = 'aviso erro';
       alvo.textContent = e.message;
@@ -829,6 +900,12 @@ function ligarEventos() {
       S.conexaoId = id;
       S.conexao = S.conexoes.find((c) => c.id === id);
       preencherSelectConexoes();
+      S.fontes = [];
+      S.juncoes = [];
+      S.mapa.clear();
+      S.filtros = [];
+      S.proxAlias = 1;
+      atualizarCartoes();
       irPara('puxar');
       await carregarSchemas();
       await carregarTabelas();
@@ -837,17 +914,17 @@ function ligarEventos() {
     if (acao === 'testar') {
       try {
         const r = await api(`/api/conexoes/${id}/testar`, { method: 'POST', body: {} });
-        toast(`OK Â· ${r.versao || 'conectado'} (${r.ms} ms)`);
+        toast(`OK · ${r.versao || 'conectado'} (${r.ms} ms)`);
       } catch (e) {
         toast(e.message, 'erro');
       }
       return;
     }
     if (acao === 'excluir') {
-      if (!confirm('Excluir esta conexÃ£o?')) return;
+      if (!confirm('Excluir esta conexão?')) return;
       try {
         await api(`/api/conexoes/${id}`, { method: 'DELETE' });
-        toast('ConexÃ£o excluÃ­da.');
+        toast('Conexão excluída.');
         await carregarConexoes();
       } catch (e) {
         toast(e.message, 'erro');
@@ -858,25 +935,57 @@ function ligarEventos() {
   $('#sel-conexao').addEventListener('change', async () => {
     S.conexaoId = Number($('#sel-conexao').value) || null;
     S.conexao = S.conexoes.find((c) => c.id === S.conexaoId) || null;
-    S.tabela = null;
-    S.colunasMain = [];
+    S.fontes = [];
     S.juncoes = [];
     S.mapa.clear();
-    $('#card-colunas').hidden = true;
-    $('#card-juncoes').hidden = true;
-    $('#card-filtros').hidden = true;
-    if (!S.conexaoId) return;
+    S.filtros = [];
+    S.ordemKey = '';
+    S.proxAlias = 1;
+    atualizarCartoes();
+    $('#btn-add-fonte').disabled = true;
+    if (!S.conexaoId) { renderFontes(); return; }
     await carregarSchemas();
     await carregarTabelas();
   });
 
   $('#sel-schema').addEventListener('change', async () => {
     S.schema = $('#sel-schema').value;
+    S.fontes = [];
+    S.juncoes = [];
+    S.mapa.clear();
+    atualizarCartoes();
     await carregarTabelas();
   });
 
-  $('#filtro-tabela').addEventListener('input', renderTabelas);
-  $('#sel-tabela').addEventListener('change', () => carregarColunas($('#sel-tabela').value));
+  $('#btn-add-fonte').addEventListener('click', () => { adicionarFonte(); });
+
+  $('#lista-fontes').addEventListener('input', (ev) => {
+    if (ev.target.dataset.papel !== 'busca-tabela') return;
+    const bloco = ev.target.closest('.fonte');
+    const i = Number(bloco.dataset.i);
+    const f = S.fontes[i];
+    if (!f) return;
+    f.busca = ev.target.value;
+    atualizarOpcoesFonte(i);
+  });
+
+  $('#lista-fontes').addEventListener('change', (ev) => {
+    const bloco = ev.target.closest('.fonte');
+    if (!bloco) return;
+    if (ev.target.dataset.papel !== 'tabela') return;
+    trocarTabelaFonte(Number(bloco.dataset.i), ev.target.value);
+  });
+
+  $('#lista-fontes').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-papel="remover-fonte"]');
+    if (!btn) return;
+    removerFonte(Number(btn.closest('.fonte').dataset.i));
+  });
+
+  $('#busca-colunas').addEventListener('input', (ev) => {
+    S.buscaColunas = ev.target.value;
+    renderColunas();
+  });
 
   $('#corpo-colunas').addEventListener('change', (ev) => {
     const linha = ev.target.closest('tr[data-chave]');
@@ -891,56 +1000,49 @@ function ligarEventos() {
     if (papel === 'marcar') {
       linha.classList.toggle('desmarcada', !m.marcada);
       atualizarResumoColunas();
+      renderFontes();
     }
   });
 
   $('#btn-todas').addEventListener('click', () => {
-    for (const m of S.mapa.values()) m.marcada = true;
+    for (const [chave, m] of S.mapa) {
+      const f = fontePorAlias(m.alias);
+      const busca = S.buscaColunas.trim().toLowerCase();
+      if (!busca || m.coluna.toLowerCase().includes(busca) || String(f?.tabela).toLowerCase().includes(busca)) {
+        m.marcada = true;
+      }
+    }
     renderColunas();
-  });
-  $('#btn-nenhuma').addEventListener('click', () => {
-    for (const m of S.mapa.values()) m.marcada = false;
-    renderColunas();
+    renderFontes();
   });
 
-  $('#btn-add-juncao').addEventListener('click', adicionarJuncao);
+  $('#btn-nenhuma').addEventListener('click', () => {
+    for (const [chave, m] of S.mapa) {
+      const f = fontePorAlias(m.alias);
+      const busca = S.buscaColunas.trim().toLowerCase();
+      if (!busca || m.coluna.toLowerCase().includes(busca) || String(f?.tabela).toLowerCase().includes(busca)) {
+        m.marcada = false;
+      }
+    }
+    renderColunas();
+    renderFontes();
+  });
 
   $('#lista-juncoes').addEventListener('change', (ev) => {
     const bloco = ev.target.closest('.juncao');
     if (!bloco) return;
-    const i = Number(bloco.dataset.i);
-    const j = S.juncoes[i];
+    const j = S.juncoes.find((x) => x.para === bloco.dataset.para);
     if (!j) return;
     const papel = ev.target.dataset.papel;
-
-    if (papel === 'tabela') {
-      trocarTabelaJuncao(i, ev.target.value);
-      return;
-    }
-    if (papel === 'esquerda') { j.esquerda = ev.target.value; return; }
-    if (papel === 'direita') { j.direita = ev.target.value; return; }
-    if (papel === 'trazer') {
-      const col = ev.target.dataset.col;
-      j.traz = ev.target.checked
-        ? [...new Set([...j.traz, col])]
-        : j.traz.filter((c) => c !== col);
-      reconstruirMapa();
-      renderColunas();
-      renderFiltros();
-      renderOrdem();
-    }
-  });
-
-  $('#lista-juncoes').addEventListener('click', (ev) => {
-    const btn = ev.target.closest('button[data-papel="remover"]');
-    if (!btn) return;
-    removerJuncao(Number(btn.closest('.juncao').dataset.i));
+    if (papel === 'de') { j.de = ev.target.value; j.esquerda = ''; }
+    if (papel === 'esquerda') j.esquerda = ev.target.value;
+    if (papel === 'direita') j.direita = ev.target.value;
+    renderJuncoes();
   });
 
   $('#btn-add-filtro').addEventListener('click', () => {
     if (!S.mapa.size) return toast('Escolha uma tabela primeiro.', 'erro');
-    const primeiro = [...S.mapa.keys()][0];
-    S.filtros.push({ key: primeiro, op: 'eq', value: '', value2: '' });
+    S.filtros.push({ key: [...S.mapa.keys()][0], op: 'eq', value: '', value2: '' });
     renderFiltros();
   });
 
@@ -952,7 +1054,6 @@ function ligarEventos() {
     if (!f || !papel) return;
     if (papel === 'coluna') {
       f.key = ev.target.value;
-      // se trocar para uma coluna de data, limpa o valor antigo
       if (ehData(tipoDoKey(f.key))) f.value = '';
       renderFiltros();
     }
@@ -965,15 +1066,13 @@ function ligarEventos() {
     const papel = ev.target.dataset.papel;
     if (papel !== 'valor' && papel !== 'valor2') return;
     const f = S.filtros[Number(ev.target.dataset.i)];
-    if (!f) return;
-    f[papel] = ev.target.value;
+    if (f) f[papel] = ev.target.value;
   });
 
   $('#lista-filtros').addEventListener('click', (ev) => {
     const btn = ev.target.closest('button[data-papel="remover"]');
     if (!btn) return;
-    const linha = btn.closest('.filtro-linha');
-    S.filtros.splice(Number(linha.dataset.i), 1);
+    S.filtros.splice(Number(btn.closest('.filtro-linha').dataset.i), 1);
     renderFiltros();
   });
 
@@ -989,28 +1088,6 @@ function ligarEventos() {
 }
 
 /* ---------------------------------------------------------------- boot */
-async function iniciar() {
-  ligarEventos();
-  try {
-    const saude = await api('/api/health');
-    $('#versao').textContent = `v${saude.versao}`;
-    $('#status-servidor').textContent = 'servidor ok';
-    $('#status-servidor').classList.add('ok');
-
-    const cat = await api('/api/catalogo');
-    S.formatos = cat.formatos;
-    const { bancos } = await api('/api/bancos');
-    S.bancos = bancos;
-    preencherBancos();
-    limparFormulario();
-    await carregarConexoes();
-  } catch (e) {
-    $('#status-servidor').textContent = 'offline';
-    $('#status-servidor').classList.add('erro');
-    toast(e.message, 'erro');
-  }
-}
-
 function sugerir(tipo = '') {
   const t = String(tipo).toLowerCase();
   if (/bool/.test(t)) return 'sim_nao';
@@ -1022,5 +1099,29 @@ function sugerir(tipo = '') {
   return 'texto';
 }
 
-iniciar();
+async function iniciar() {
+  ligarEventos();
+  try {
+    const saude = await api('/api/health');
+    $('#versao').textContent = `v${saude.versao}`;
+    $('#status-servidor').textContent = 'servidor ok';
+    $('#status-servidor').classList.add('ok');
+    S.prevLimit = saude.prevLimit || 500;
+    $('#prev-limit').textContent = S.prevLimit;
 
+    const cat = await api('/api/catalogo');
+    S.formatos = cat.formatos;
+    const { bancos } = await api('/api/bancos');
+    S.bancos = bancos;
+    preencherBancos();
+    limparFormulario();
+    await carregarConexoes();
+    renderFontes();
+  } catch (e) {
+    $('#status-servidor').textContent = 'offline';
+    $('#status-servidor').classList.add('erro');
+    toast(e.message, 'erro');
+  }
+}
+
+iniciar();

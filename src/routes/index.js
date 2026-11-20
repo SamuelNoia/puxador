@@ -1,9 +1,9 @@
-﻿// Registro das rotas da aplicacao.
+// Registro das rotas da aplicacao.
 import { route } from '../web.js';
 import { loginAtivo, autenticar, sessaoValida, encerrar, COOKIE_NAME } from '../auth.js';
 import { registrar as registrarConexoes } from './conexoes.js';
 import { registrar as registrarDados } from './dados.js';
-import { VERSION, ACCESS_PASSWORD } from '../config.js';
+import { VERSION, ACCESS_PASSWORD, PREVIEW_LIMIT } from '../config.js';
 import { HttpError } from '../web.js';
 import { BANCOS } from '../drivers/index.js';
 import { FORMATOS } from '../format.js';
@@ -14,6 +14,7 @@ export function registrarRotas() {
     versao: VERSION,
     login: loginAtivo(),
     bancos: BANCOS.length,
+    prevLimit: PREVIEW_LIMIT,
   }));
 
   route('GET', '/api/sessao', async (ctx) => ({
