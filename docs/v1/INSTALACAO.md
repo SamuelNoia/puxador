@@ -1,8 +1,14 @@
-# Instalação e operação — v1
+# Instalação e operação
 
-Requisito único: **Node.js 22.5 ou superior** (para Windows/Linux nativo) **ou** Docker.
+Requisito único: **Node.js 22.5 ou superior** (Windows/Linux nativo) **ou** Docker.
 
-O Node 22.5+ é necessário porque o armazenamento interno usa o módulo `node:sqlite`, nativo.
+Os instaladores estão organizados por sistema e por ação em [`install/`](../install/README.md):
+
+| Sistema | Instalar | Atualizar | Desinstalar |
+|---|---|---|---|
+| Windows | `INSTALAR.cmd` | `ATUALIZAR.cmd` | `DESINSTALAR.cmd` |
+| Linux (Node) | `install/linux/instalar.sh` | `install/linux/atualizar.sh` | `install/linux/desinstalar.sh` |
+| Docker | `install/docker/instalar.sh` | `install/docker/atualizar.sh` | `install/docker/desinstalar.sh` |
 
 ---
 
@@ -11,7 +17,7 @@ O Node 22.5+ é necessário porque o armazenamento interno usa o módulo `node:s
 ### Instalação assistida
 
 1. Baixe o projeto (Code → Download ZIP) e descompacte.
-2. Botão direito em **`INSTALAR.cmd`** → *Executar*.
+2. Botão direito em **`INSTALAR.cmd`** → *Executar* (o mesmo arquivo está em `install/windows/`).
 3. O script:
    - procura o Node.js (e instala pelo `winget` se faltar);
    - copia os arquivos para `%LOCALAPPDATA%\PuxadorDados`;
@@ -19,7 +25,7 @@ O Node 22.5+ é necessário porque o armazenamento interno usa o módulo `node:s
    - cria `iniciar.cmd` e o atalho **Puxador de Dados** na área de trabalho;
    - abre o navegador em `http://localhost:8790`.
 
-Opções do instalador (`powershell -ExecutionPolicy Bypass -File instalar-windows.ps1`):
+Opções do instalador (`powershell -ExecutionPolicy Bypass -File install\windows\instalar-windows.ps1`):
 
 | Parâmetro | Efeito |
 |---|---|
@@ -40,51 +46,54 @@ $env:PORT=8790; npm start
 ### Atualizar / desinstalar
 
 - **Atualizar:** `ATUALIZAR.cmd` — baixa a versão nova, preserva `data/`, reinstala dependências.
-- **Desinstalar:** `DESINSTALAR.cmd` — encerra o servidor, remove o atalho e a pasta.
-  Os dados só são apagados se você confirmar; caso contrário ficam em `PuxadorDados-data`.
+- **Desinstalar:** `DESINSTALAR.cmd` — encerra o servidor, remove o atalho e a pasta. Os dados só são
+  apagados se você confirmar; caso contrário ficam em `PuxadorDados-data`.
 
 ---
 
 ## Ubuntu / Linux
 
-### Instalação assistida (Docker — padrão)
-
-Baixa e sobe a **imagem publicada** no GHCR. Não precisa de Node, npm nem do código-fonte:
+### Docker (padrão — não precisa de Node)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/instalar.sh | sh
+curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/docker/instalar.sh | sh
 ```
 
-O script:
-
-1. confere se o Docker está instalado e acessível;
-2. baixa `ghcr.io/samuelnoia/puxador:latest`;
-3. cria a pasta de dados (`/DATA/AppData/puxador/data` em CasaOS/ZimaOS, senão `/opt/puxador/data`);
-4. sobe o container `puxador` com `--restart unless-stopped`;
-5. espera o `/api/health` responder e mostra o endereço.
-
-Variáveis aceitas:
+O script confere o Docker, baixa `ghcr.io/samuelnoia/puxador:latest`, cria a pasta de dados
+(`/DATA/AppData/puxador/data` em CasaOS/ZimaOS, senão `/opt/puxador/data`), sobe o container
+`puxador` com `--restart unless-stopped`, espera o `/api/health` e mostra o endereço.
 
 ```bash
-PORT=8800 sh instalar.sh                        # outra porta no host
-ACCESS_PASSWORD=minhasenha sh instalar.sh       # exige login
-DATA_DIR=/srv/puxador/data sh instalar.sh       # pasta de dados
-IMAGE=ghcr.io/samuelnoia/puxador:1.0.2 sh instalar.sh
-NOME=puxador-erp sh instalar.sh                 # outro nome de container
+PORT=8800 sh install/docker/instalar.sh               # outra porta
+ACCESS_PASSWORD=minhasenha sh install/docker/instalar.sh
+DATA_DIR=/srv/puxador/data sh install/docker/instalar.sh
+IMAGE=ghcr.io/samuelnoia/puxador:1.3.1 sh install/docker/instalar.sh
 ```
 
-Rodar o comando de novo **atualiza** a imagem e recria o container, preservando `DATA_DIR`.
-
-Se a imagem não puder ser baixada (pacote privado), o script tenta construir a partir do código
-clonado; caso contrário, orienta o `docker login ghcr.io`.
-
-### Instalação nativa (sem Docker)
+Atualizar e desinstalar:
 
 ```bash
-MODO=native sh instalar.sh
+sh install/docker/atualizar.sh                  # baixa a imagem nova e recria o container
+sh install/docker/desinstalar.sh                # remove o container, mantém os dados
+APAGAR_DADOS=1 sh install/docker/desinstalar.sh # remove também a pasta de dados
+```
+
+Se a imagem não puder ser baixada (pacote privado), o instalador tenta construir a partir do código
+e, sem código, orienta o `docker login ghcr.io`.
+
+### Node nativo (sem Docker)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/linux/instalar.sh | sh
 ```
 
 Requer Node.js 22.5+. O script clona em `~/puxador`, instala dependências e cria o `iniciar.sh`.
+
+```bash
+sh install/linux/atualizar.sh                   # git pull + npm install
+sh install/linux/desinstalar.sh                 # remove o programa e guarda os dados em ~/puxador-data-*
+APAGAR_DADOS=1 sh install/linux/desinstalar.sh  # remove tudo
+```
 
 ### Manual
 
@@ -98,8 +107,6 @@ PORT=8790 node server.js
 
 ### systemd
 
-Copie o arquivo pronto, ajuste usuário/pasta e ative:
-
 ```bash
 sudo cp docs/v1/systemd/puxador.service /etc/systemd/system/
 sudo nano /etc/systemd/system/puxador.service     # ajuste User e WorkingDirectory
@@ -111,27 +118,21 @@ journalctl -u puxador -f                          # logs
 
 ---
 
-## Docker
-
-### Com compose (recomendado)
+## Docker (a partir do código)
 
 ```bash
 docker compose up -d
 docker compose logs -f
 ```
 
-O `docker-compose.yml` já monta `./data` no container e expõe a porta 8790.
-
-### Sem compose
+O `docker-compose.yml` monta `./data` no container e expõe a porta 8790.
 
 ```bash
-docker build -t puxador-dados:1.0.0 .
-docker run -d --name puxador \
-  -p 8790:8790 \
+docker build -t puxador-dados:1.4.0 .
+docker run -d --name puxador -p 8790:8790 \
   -e ACCESS_PASSWORD=minhasenha \
-  -v "$PWD/data:/data" \
-  --restart unless-stopped \
-  puxador-dados:1.0.0
+  -v "$PWD/data:/data" --restart unless-stopped \
+  puxador-dados:1.4.0
 ```
 
 ### Imagem publicada
@@ -141,9 +142,6 @@ A cada tag `v*` o GitHub Actions publica em `ghcr.io/samuelnoia/puxador`:
 ```bash
 docker pull ghcr.io/samuelnoia/puxador:latest
 ```
-
-> Se o pacote estiver privado, faça login antes:
-> `echo SEU_TOKEN | docker login ghcr.io -u samuelnoia --password-stdin`
 
 ---
 
@@ -166,6 +164,7 @@ as conexões precisariam ser recadastradas.
 
 ```bash
 node tools/doctor.js      # versão do Node, dependências, pasta data, porta
+node tools/check-ui.js    # integridade da interface (IDs, CSS, textos)
 curl http://localhost:8790/api/health
 ```
 
@@ -181,3 +180,4 @@ Problemas comuns:
 | Firebird: `Unavailable database` | caminho com IP, alias do IBExpert ou só o nome do arquivo |
 | Página em branco | abra o console do navegador; confira se `public/` foi copiado |
 | Container reiniciando com `unable to open database file` | volume `/data` sem permissão para o uid 1000. A partir da 1.0.3 a imagem corrige sozinha; em volumes antigos: `sudo chown -R 1000:1000 /opt/puxador/data` e recrie o container |
+| `Nome repetido na planilha` | duas colunas com o mesmo “Nome na planilha” — renomeie uma (ex.: `fabricante_Id`) |

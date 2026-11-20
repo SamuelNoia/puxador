@@ -16,6 +16,7 @@ const S = {
   filtros: [],       // [{ key, op, value, value2 }]
   buscaColunas: '',
   buscaFiltro: '',
+  recolhidos: new Set(),   // fontes minimizadas na grade de colunas
   ordemKey: '',
   dir: 'asc',
   resultado: null,
@@ -472,10 +473,20 @@ function renderColunas() {
       || String(f.tabela || '').toLowerCase().includes(busca));
     if (!visiveis.length) return;
 
-    if (S.fontes.length > 1) {
-      linhas.push(`<tr class="grupo"><td colspan="6">Fonte ${idx + 1} · ${esc(f.tabela || 'sem tabela')}
-        <span class="muted">(${visiveis.length} coluna(s))</span></td></tr>`);
-    }
+    // toda fonte tem cabeçalho clicável (minimiza/expande), mesmo quando há só uma
+    const recolhida = S.recolhidos.has(f.alias);
+    const marcadasFonte = visiveis.filter((c) => S.mapa.get(`${f.alias}.${c.nome}`)?.marcada).length;
+    linhas.push(`
+      <tr class="grupo" data-grupo="${esc(f.alias)}">
+        <td colspan="6">
+          <button class="btn-mini" data-papel="toggle-grupo" title="${recolhida ? 'expandir' : 'minimizar'}">${recolhida ? '▸' : '▾'}</button>
+          <strong>Fonte ${idx + 1} · ${esc(f.tabela || 'sem tabela')}</strong>
+          <span class="muted">(${visiveis.length} coluna(s) · ${marcadasFonte} marcada(s))</span>
+          ${recolhida ? '<span class="muted">— minimizada, clique para abrir</span>' : ''}
+        </td>
+      </tr>`);
+
+    if (recolhida) return;
 
     for (const c of visiveis) {
       const chave = `${f.alias}.${c.nome}`;
@@ -1063,6 +1074,17 @@ function ligarEventos() {
 
   $('#busca-colunas').addEventListener('input', (ev) => {
     S.buscaColunas = ev.target.value;
+    renderColunas();
+  });
+
+  $('#corpo-colunas').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-papel="toggle-grupo"]');
+    if (!btn) return;
+    const alvo = btn.closest('tr[data-grupo]');
+    const alias = alvo?.dataset.grupo;
+    if (!alias) return;
+    if (S.recolhidos.has(alias)) S.recolhidos.delete(alias);
+    else S.recolhidos.add(alias);
     renderColunas();
   });
 

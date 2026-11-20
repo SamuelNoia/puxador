@@ -361,6 +361,21 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
   top: 30px;
 }
 
+.tabela-mapa tr.grupo .btn-mini {
+  border: 1px solid #cfdcf3;
+  background: #fff;
+  color: var(--azul);
+  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+  margin-right: 8px;
+  padding: 0;
+  font-size: 11px;
+}
+.tabela-mapa tr.grupo .btn-mini:hover { background: #e2ebfb; }
+
 /* card recolhido (minimizado) */
 .card.recolhido .card-body { display: none; }
 .card.recolhido .card-head { border-bottom: none; }

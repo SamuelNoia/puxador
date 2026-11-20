@@ -43,7 +43,7 @@ try {
     $raiz = (Get-ChildItem -Path $temp -Directory | Where-Object { $_.Name -like 'puxador-*' } | Select-Object -First 1).FullName
     if (-not $raiz) { throw 'Pacote baixado invalido.' }
 
-    foreach ($item in @('server.js', 'package.json', 'package-lock.json', 'src', 'public', 'tools', 'docs')) {
+    foreach ($item in @('server.js', 'package.json', 'package-lock.json', 'src', 'public', 'tools', 'docs', 'install', 'README.md')) {
         $o = Join-Path $raiz $item
         if (-not (Test-Path $o)) { continue }
         $d = Join-Path $Pasta $item

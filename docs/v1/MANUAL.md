@@ -66,8 +66,11 @@ Todas as colunas de todas as fontes aparecem numa única grade, agrupadas por ta
 
 Use o campo **pesquisar coluna ou tabela** para achar rápido em tabelas com centenas de colunas.
 Os botões **marcar visíveis / desmarcar visíveis** agem só no que está filtrado pela pesquisa.
-O botão **minimizar** recolhe a grade inteira (útil depois de configurar tudo, para enxergar
-relacionamentos e filtros sem rolar muito); ele vira **expandir** para voltar.
+
+**Minimizar as fontes.** Cada faixa azul da grade (`Fonte 1 · item`, `Fonte 2 · fabricante`) tem um
+botão **▾/▸** que recolhe só aquela tabela — com 154 colunas do `item`, isso deixa a `fonte 2`
+visível sem rolar. O cabeçalho continua mostrando quantas colunas existem e quantas estão marcadas.
+O botão **minimizar** no topo recolhe a grade inteira; ele vira **expandir** para voltar.
 
 > **Nomes repetidos.** Colunas de tabelas diferentes podem ter o mesmo nome (`Id`, `Descricao`).
 > Para evitar que uma sobrescreva a outra na planilha, as colunas vindas de tabelas relacionadas ganham

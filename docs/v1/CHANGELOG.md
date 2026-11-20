@@ -4,6 +4,30 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.4.0] — 2026-11-21
+
+### Adicionado
+
+- **Minimizar cada tabela na grade de colunas**: a faixa de cada fonte (`Fonte 1 · item`) agora tem um
+  botão ▾/▸ que recolhe apenas aquela tabela, mostrando no cabeçalho quantas colunas existem e quantas
+  estão marcadas. Ideal para chegar rápido na segunda tabela quando a primeira tem centenas de colunas.
+- **Repositório organizado por uso**: os instaladores saíram da raiz para `install/`
+  - `install/windows/` — `INSTALAR.cmd`, `ATUALIZAR.cmd`, `DESINSTALAR.cmd` e os `.ps1`
+  - `install/linux/` — `instalar.sh`, `atualizar.sh`, `desinstalar.sh` (Node nativo)
+  - `install/docker/` — `instalar.sh`, `atualizar.sh`, `desinstalar.sh` (imagem publicada)
+  - `install/README.md` — índice “escolha o seu caso”
+- Scripts de **atualizar** e **desinstalar** para Docker (antes só existia o instalar), preservando a
+  pasta de dados por padrão (`APAGAR_DADOS=1` para remover).
+- `desinstalar.sh` para Linux nativo, que guarda os dados em `~/puxador-data-<data>` antes de remover.
+
+### Alterado
+
+- Atalhos na raiz (`INSTALAR.cmd`, `ATUALIZAR.cmd`, `DESINSTALAR.cmd`) continuam funcionando e apontam
+  para `install/windows/`. O `instalar.sh` da raiz virou um atalho que avisa os novos endereços.
+- URLs de instalação em um comando passaram a ser
+  `.../main/install/docker/instalar.sh` e `.../main/install/linux/instalar.sh`.
+- Manuais (README, INSTALAÇÃO e MANUAL) atualizados com a nova estrutura e o recurso de minimizar.
+
 ## [1.3.1] — 2026-11-21
 
 ### Corrigido

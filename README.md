@@ -60,21 +60,25 @@ npm start
 
 ### Ubuntu / Linux
 
-Um comando, usando **Docker e a imagem publicada** (não precisa de Node nem clonar o código):
+Dois caminhos, cada um com instalar / atualizar / desinstalar em [`install/`](install/README.md):
+
+**Docker (padrão)** — baixa a imagem publicada, não precisa de Node nem do código:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/instalar.sh | sh
+curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/docker/instalar.sh | sh
 ```
 
-Personalizando: `PORT=8800 sh instalar.sh`, `ACCESS_PASSWORD=senha sh instalar.sh`,
-`DATA_DIR=/srv/puxador/data sh instalar.sh`. Rodar de novo atualiza o container mantendo os dados.
-
-Sem Docker? Instalação nativa em Node:
+**Node nativo (sem Docker)** — requer Node 22.5+:
 
 ```bash
-MODO=native sh instalar.sh
-# ou, dentro do projeto:
-npm install && npm start
+curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/linux/instalar.sh | sh
+```
+
+Para atualizar ou remover depois, dentro da pasta instalada:
+
+```bash
+sh install/docker/atualizar.sh     # ou install/linux/atualizar.sh
+sh install/docker/desinstalar.sh   # ou install/linux/desinstalar.sh
 ```
 
 Para rodar como serviço: veja [docs/v1/INSTALACAO.md](docs/v1/INSTALACAO.md#systemd).
@@ -122,7 +126,7 @@ src/
   config.js            portas, pastas, limites
   db.js                SQLite local (node:sqlite)
   crypto.js            cifra das senhas
-  query.js             montagem de SQL por dialeto
+  query.js             montagem de SQL por dialeto (joins encadeados)
   format.js            formatações (texto, moeda, data…)
   export.js            geração de XLSX e CSV
   xlsx.js              engine XLSX própria (zero dependência)
@@ -132,11 +136,17 @@ src/
   routes/              endpoints REST
 public/                index.html, app.css, app.js (SPA sem build)
 tools/selftest.js      teste ponta a ponta
+tools/check-ui.js      checagem de IDs, CSS e textos corrompidos
 docs/v1/               documentação da versão 1
+install/               instaladores por sistema e por ação
+  windows/             INSTALAR.cmd, ATUALIZAR.cmd, DESINSTALAR.cmd
+  linux/               instalar.sh, atualizar.sh, desinstalar.sh
+  docker/              instalar.sh, atualizar.sh, desinstalar.sh
 ```
 
 ## Documentação
 
+- [Instalação (Windows, Linux, Docker)](install/README.md)
 - [Manual de uso](docs/v1/MANUAL.md)
 - [Instalação e operação](docs/v1/INSTALACAO.md)
 - [Conectores e limitações](docs/v1/CONECTORES.md)

@@ -127,10 +127,9 @@ try {
     New-Item -ItemType Directory -Force -Path $Pasta | Out-Null
 
     $itens = @('server.js', 'package.json', 'package-lock.json', 'README.md', 'LICENSE',
-        'src', 'public', 'tools', 'docs', 'Dockerfile', '.dockerignore', '.gitignore',
-        'docker-compose.yml', 'instalar.sh', 'instalar-windows.ps1', 'INSTALAR.cmd',
-        'iniciar.cmd', 'atualizar-windows.ps1', 'ATUALIZAR.cmd',
-        'desinstalar-windows.ps1', 'DESINSTALAR.cmd')
+        'src', 'public', 'tools', 'docs', 'install', 'Dockerfile', '.dockerignore', '.gitignore',
+        'docker-compose.yml', 'iniciar.cmd',
+        'INSTALAR.cmd', 'ATUALIZAR.cmd', 'DESINSTALAR.cmd')
 
     $n = 0
     foreach ($item in $itens) {

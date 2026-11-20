@@ -1,5 +1,9 @@
 #!/bin/sh
-# Atualiza o Puxador de Dados (modo nativo). Mantem a pasta data.
+# =====================================================================
+#  Puxador de Dados - ATUALIZAR (Linux direto / Node.js)
+#
+#     sh install/linux/atualizar.sh
+# =====================================================================
 set -eu
 PASTA="${PASTA:-$HOME/puxador}"
 
@@ -16,7 +20,7 @@ if [ -d .git ]; then
   info "Baixando atualizacao..."
   git pull --ff-only
 else
-  erro "A pasta nao e um repositorio git. Reinstale com instalar.sh"
+  erro "A pasta nao e um repositorio git. Reinstale com install/linux/instalar.sh"
 fi
 
 info "Atualizando dependencias..."
@@ -24,3 +28,4 @@ npm install --omit=dev --no-audit --no-fund
 
 echo ""
 echo "  Atualizado. Inicie com: $PASTA/iniciar.sh"
+echo ""
