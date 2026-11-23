@@ -47,7 +47,7 @@ x-casaos:
   description:
     pt_br: Extrai dados de MySQL, MariaDB, PostgreSQL e Firebird e gera planilhas XLSX, CSV e PDF.
   developer: Samuel Noia
-  icon: https://raw.githubusercontent.com/SamuelNoia/puxador/main/docs/v1/img/fluxo.svg
+  icon: https://raw.githubusercontent.com/SamuelNoia/puxador/main/docs/img/logo-192.png
   title:
     pt_br: Puxador de Dados
   port_map: "8790"

@@ -4,6 +4,21 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.7.0] — 2026-11-23
+
+### Adicionado
+
+- **Identidade visual**: logo do macaco puxando a sigla **SQL** (`docs/img/logo.svg`), aplicada no
+  cabeçalho do portal, no favicon (`public/favicon.svg` + PNG 64), no ícone de app
+  (`logo-192.png`), no README e no app personalizado do ZimaOS/CasaOS.
+- `docs/img/social-preview.png` (1280×640) para o *Social preview* do GitHub.
+- Versões rasterizadas 512 e 192 px geradas do mesmo SVG.
+
+### Alterado
+
+- O quadrado “PD” do cabeçalho virou a logo; `<title>`, favicon, `theme-color` e metatags `og:*`
+  atualizados.
+
 ## [1.6.1] — 2026-11-23
 
 ### Corrigido

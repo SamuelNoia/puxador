@@ -1,8 +1,20 @@
-# Puxador de Dados
+<p align="center">
+  <img src="docs/img/logo-512.png" width="180" alt="Puxador de Dados — macaco puxando a sigla SQL" />
+</p>
 
-Portal web para **extrair dados de qualquer banco** (MySQL, MariaDB, PostgreSQL e Firebird), renomear e
-formatar cada coluna e gerar a planilha pronta — sem escrever SQL e sem instalar cliente de banco na
-máquina de quem usa.
+<h1 align="center">Puxador de Dados</h1>
+
+<p align="center">
+  Portal web para <strong>extrair dados de qualquer banco</strong> (MySQL, MariaDB, PostgreSQL e Firebird),
+  renomear e formatar cada coluna e gerar a planilha pronta — sem escrever SQL e sem instalar cliente de
+  banco na máquina de quem usa.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Node-22.5%2B-339933?logo=node.js&logoColor=white" alt="Node 22.5+" />
+  <img src="https://img.shields.io/badge/Docker-ghcr.io%2Fsamuelnoia%2Fpuxador-2496ED?logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/licen%C3%A7a-MIT-green" alt="MIT" />
+</p>
 
 Roda em **Windows**, **Ubuntu/Linux** e **Docker**. Interface em português, sem build de front-end,
 sem banco intermediário: a configuração fica num SQLite local na pasta `data/`.
