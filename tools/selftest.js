@@ -128,6 +128,8 @@ async function main() {
 
   const html = await api('/');
   ok('index.html servido', html.buffer.includes('Puxador de Dados'));
+  ok('html injeta versao no app.js (cache-buster)',
+    /app\.js\?v=\d+\.\d+\.\d+/.test(html.buffer.toString('utf8')));
 
   // CRUD de conexao sempre roda (com dados ficticios se nao houver banco real)
   const exemplo = {

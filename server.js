@@ -1,8 +1,7 @@
 // Servidor do Puxador de Dados.
 import http from 'node:http';
 import fs from 'node:fs';
-import { PORT, HOST, DATA_DIR, DB_FILE, PUBLIC_DIR, VERSION, APP_NAME } from './src/config.js';
-import { openDb } from './src/db.js';
+import { PORT, HOST, DATA_DIR, DB_FILE, PUBLIC_DIR, VERSION, APP_NAME } from './src/config.js';import { openDb } from './src/db.js';
 import { registrarRotas } from './src/routes/index.js';
 import { matchRoute, parseCookies, readJson, sendJson, serveStatic, HttpError } from './src/web.js';
 import { loginAtivo, sessaoValida, COOKIE_NAME } from './src/auth.js';
@@ -47,6 +46,27 @@ function responderErro(res, err, pathname) {
   res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8' }).end(html);
 }
 
+/**
+ * Entrega um arquivo estatico.
+ * HTML recebe a versao no lugar de __V__ (cache-buster de app.js/app.css);
+ * JS e CSS sao servidos com no-cache para nunca ficar UI velha apos uma atualizacao.
+ */
+function entregarEstatico(req, res, arquivo) {
+  let corpo = arquivo.buffer;
+  const ehHtml = /text\/html/i.test(arquivo.contentType);
+  const ehCodigo = /javascript|text\/css/i.test(arquivo.contentType);
+
+  if (ehHtml) {
+    corpo = Buffer.from(corpo.toString('utf8').replace(/__V__/g, VERSION), 'utf8');
+  }
+
+  res.writeHead(200, {
+    'Content-Type': arquivo.contentType,
+    'Content-Length': corpo.length,
+    'Cache-Control': ehHtml || ehCodigo ? 'no-cache' : 'public, max-age=3600',
+  }).end(req.method === 'HEAD' ? undefined : corpo);
+}
+
 const server = http.createServer(async (req, res) => {
   const inicio = Date.now();
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -59,17 +79,13 @@ const server = http.createServer(async (req, res) => {
     if ((req.method === 'GET' || req.method === 'HEAD') && !pathname.startsWith('/api/')) {
       const arquivo = serveStatic(PUBLIC_DIR, pathname);
       if (arquivo) {
-        res.writeHead(200, {
-          'Content-Type': arquivo.contentType,
-          'Content-Length': arquivo.buffer.length,
-          'Cache-Control': pathname === '/index.html' || pathname === '/' ? 'no-cache' : 'public, max-age=300',
-        }).end(req.method === 'HEAD' ? undefined : arquivo.buffer);
+        entregarEstatico(req, res, arquivo);
         return;
       }
       // SPA: qualquer rota desconhecida cai no index
       const index = serveStatic(PUBLIC_DIR, '/index.html');
       if (index) {
-        res.writeHead(200, { 'Content-Type': index.contentType, 'Cache-Control': 'no-cache' }).end(index.buffer);
+        entregarEstatico(req, res, index);
         return;
       }
     }

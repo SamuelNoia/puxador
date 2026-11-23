@@ -4,6 +4,28 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.8.2] — 2026-11-23
+
+### Corrigido
+
+- **Interface “pela metade” depois de atualizar** (cabeçalho novo, linhas velhas): o `app.js` podia ficar
+  até 5 minutos em cache no navegador, então a grade aparecia desalinhada — com a coluna *Ordem* no
+  cabeçalho e sem o campo nas linhas. Agora:
+  - o HTML injeta a versão nos links (`/app.css?v=1.8.2`, `/app.js?v=1.8.2`), forçando o navegador a
+    baixar o arquivo novo depois de cada atualização;
+  - `app.js`, `app.css` e o HTML são servidos com `Cache-Control: no-cache`; imagens e fontes seguem
+    com cache de 1 hora.
+- Autoteste passou a checar o cache-buster no HTML (**32 verificações**).
+
+## [1.8.1] — 2026-11-23
+
+### Alterado
+
+- Coluna de sequência renomeada de **“Seq”** para **“Ordem”**, com tooltip explicando que é a posição na
+  planilha e que pode ser digitada outra.
+- Subtítulo do card “2 · Colunas e formatação” passou a citar a coluna *Ordem*; o resumo mostra a faixa
+  usada (`ordem 1–8`), e o campo ficou mais largo.
+
 ## [1.8.0] — 2026-11-23
 
 ### Adicionado
