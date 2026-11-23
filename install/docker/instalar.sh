@@ -22,14 +22,24 @@ TZ="${TZ:-America/Sao_Paulo}"
 SENHA="${ACCESS_PASSWORD:-}"
 REPO_URL="${REPO_URL:-https://github.com/SamuelNoia/puxador.git}"
 PASTA="${PASTA:-/opt/puxador}"
+URL_INSTALADOR="${URL_INSTALADOR:-https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/docker/instalar.sh}"
 
 info() { printf '\033[1;34m==>\033[0m %s\n' "$1"; }
 erro() { printf '\033[1;31mERRO:\033[0m %s\n' "$1" >&2; exit 1; }
 
+# Em ZimaOS/CasaOS o HOME as vezes aponta para /DATA, onde o docker nao consegue
+# ler/escrever o config.json (aparece "WARNING: Error loading config file").
+# Usar um diretorio temporario evita o aviso sem mudar nada da sua configuracao.
+if [ -z "${DOCKER_CONFIG:-}" ]; then
+  export DOCKER_CONFIG="${TMPDIR:-/tmp}/docker-puxador"
+  mkdir -p "$DOCKER_CONFIG" 2>/dev/null || true
+fi
+
 command -v docker >/dev/null 2>&1 || erro "Docker nao encontrado. Instale o Docker ou use install/linux/instalar.sh."
 
 if ! docker info >/dev/null 2>&1; then
-  erro "Sem permissao para falar com o Docker. Rode com sudo ou adicione seu usuario ao grupo docker."
+  erro "Sem permissao para falar com o Docker. Rode o script com sudo:
+       curl -fsSL $URL_INSTALADOR -o /tmp/puxador-instalar.sh && sudo sh /tmp/puxador-instalar.sh"
 fi
 
 # pasta de dados: segue o padrao do CasaOS/ZimaOS quando existir
@@ -40,6 +50,17 @@ if [ -z "${DATA_DIR:-}" ]; then
     DATA_DIR="/opt/${NOME}/data"
   fi
 fi
+
+# Descobre o IP da maquina: hostname -I (Linux), rota padrao (ZimaOS as vezes nao tem -I)
+detectar_ip() {
+  _ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+  [ -n "${_ip:-}" ] && { echo "$_ip"; return; }
+  _ip=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i=="src") { print $(i+1); exit }}')
+  [ -n "${_ip:-}" ] && { echo "$_ip"; return; }
+  _ip=$(ip -4 addr show scope global 2>/dev/null | awk '/inet /{sub(/\/.*/, "", $2); print $2; exit}')
+  [ -n "${_ip:-}" ] && { echo "$_ip"; return; }
+  echo ""
+}
 
 info "Imagem:  $IMAGE"
 info "Porta:   $PORT"
@@ -108,8 +129,12 @@ if ! docker inspect --format '{{.State.Running}}' "$NOME" 2>/dev/null | grep -q 
        docker logs $NOME"
 fi
 
-IP_LOCAL=$(hostname -I 2>/dev/null | awk '{print $1}')
-[ -n "${IP_LOCAL:-}" ] || IP_LOCAL="IP-DO-SERVIDOR"
+IP_LOCAL=$(detectar_ip)
+SEM_IP=0
+if [ -z "$IP_LOCAL" ]; then
+  IP_LOCAL="IP-DO-SERVIDOR"
+  SEM_IP=1
+fi
 
 cat <<FIM
 
@@ -131,6 +156,11 @@ FIM
 if [ -z "$SENHA" ]; then
   echo "  O portal esta sem senha (rede interna). Para exigir senha:"
   echo "    docker rm -f ${NOME} && ACCESS_PASSWORD=suasenha sh instalar.sh"
+fi
+if [ "$SEM_IP" = "1" ]; then
+  echo ""
+  echo "  Nao consegui detectar o IP desta maquina. Descubra com:"
+  echo "    hostname -I    (ou)    ip -4 addr show scope global"
 fi
 echo "====================================================================="
 echo ""

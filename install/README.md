@@ -7,6 +7,7 @@ Cada pasta tem os três comandos: **instalar**, **atualizar** e **desinstalar**.
 | **Windows** | [`windows/`](windows) | duplo clique em `INSTALAR.cmd` (ou `ATUALIZAR.cmd` / `DESINSTALAR.cmd`) |
 | **Linux (Node nativo)** | [`linux/`](linux) | `sh install/linux/instalar.sh` |
 | **Docker** | [`docker/`](docker) | `sh install/docker/instalar.sh` |
+| **ZimaOS / CasaOS** | [`zimaos/`](zimaos) | `sudo sh /tmp/puxador.sh` (veja abaixo) |
 
 ---
 
@@ -52,6 +53,41 @@ sh install/docker/desinstalar.sh
 
 # desinstalar apagando os dados
 APAGAR_DADOS=1 sh install/docker/desinstalar.sh
+```
+
+> **Atenção ao `sudo`.** Em `sudo curl ... | sh` o `sudo` vale só para o `curl` — o `sh` roda como
+> seu usuário. Se o Docker exige root, baixe e rode o script com `sudo`:
+>
+> ```sh
+> curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/docker/instalar.sh -o /tmp/puxador.sh
+> sudo sh /tmp/puxador.sh
+> ```
+
+## ZimaOS / CasaOS
+
+O instalador já reconhece o padrão do ZimaOS e grava os dados em
+**`/DATA/AppData/puxador/data`** (o volume que aparece no painel).
+
+```sh
+# no terminal do ZimaOS (SSH ou app Terminal)
+curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/docker/instalar.sh -o /tmp/puxador.sh
+sudo sh /tmp/puxador.sh
+```
+
+Depois acesse `http://IP-DO-ZIMA:8790` (a porta 8790 fica publicada; `hostname -I` às vezes não
+existe no ZimaOS, então o instalador descobre o IP pela rota padrão).
+
+**Pelo painel (app personalizado):** copie [`zimaos/docker-compose.yml`](zimaos/docker-compose.yml)
+para `/DATA/AppData/puxador/docker-compose.yml` e use *Install a customized app* apontando para ele.
+O arquivo já traz `x-casaos` para aparecer bonito no painel.
+
+Atualizar/desinstalar no ZimaOS:
+
+```sh
+docker pull ghcr.io/samuelnoia/puxador:latest
+sh install/docker/atualizar.sh     # se tiver o repositório na máquina
+# ou
+docker rm -f puxador && sudo sh /tmp/puxador.sh
 ```
 
 ---

@@ -4,6 +4,24 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.6.1] — 2026-11-23
+
+### Corrigido
+
+- **Instalação no ZimaOS/CasaOS**:
+  - o aviso `WARNING: Error loading config file: /DATA/.docker/config.json: permission denied` foi
+    eliminado (o instalador usa um `DOCKER_CONFIG` temporário quando o HOME não é gravável);
+  - a detecção de IP não depende mais de `hostname -I` (que falta em algumas versões do ZimaOS):
+    tenta a rota padrão (`ip -4 route get`) e depois `ip -4 addr`, e avisa como descobrir se falhar;
+  - a mensagem de erro de permissão agora mostra o comando certo (`curl -o arquivo && sudo sh arquivo`),
+    porque em `sudo curl ... | sh` o `sudo` não se aplica ao `sh`.
+
+### Adicionado
+
+- [`install/zimaos/docker-compose.yml`](../install/zimaos/docker-compose.yml) para instalar pelo painel
+  do ZimaOS/CasaOS (com bloco `x-casaos` e volume em `/DATA/AppData/puxador/data`).
+- Seção **ZimaOS / CasaOS** no [guia de instalação](../install/README.md#zimaos--casaos).
+
 ## [1.6.0] — 2026-11-23
 
 ### Adicionado

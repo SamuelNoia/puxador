@@ -1,0 +1,53 @@
+# Puxador de Dados no ZimaOS / CasaOS
+#
+# Duas formas de instalar:
+#
+#  1) Terminal (recomendado):
+#       sudo sh -c 'curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/docker/instalar.sh -o /tmp/puxador-instalar.sh && sh /tmp/puxador-instalar.sh'
+#     ou baixe e rode com sudo:
+#       curl -fsSL .../instalar.sh -o /tmp/puxador.sh && sudo sh /tmp/puxador.sh
+#
+#  2) App personalizado do ZimaOS: copie este arquivo para
+#       /DATA/AppData/puxador/docker-compose.yml
+#     e use "Install a customized app" apontando para ele (ou `docker compose up -d` na pasta).
+#
+# Os dados ficam em /DATA/AppData/puxador/data — pasta padrão do ZimaOS/CasaOS.
+
+name: puxador
+
+services:
+  puxador:
+    image: ghcr.io/samuelnoia/puxador:latest
+    container_name: puxador
+    restart: unless-stopped
+    ports:
+      - "8790:8790"
+    environment:
+      PORT: "8790"
+      HOST: "0.0.0.0"
+      DATA_DIR: "/data"
+      TZ: "America/Sao_Paulo"
+      # Descomente para exigir senha:
+      # ACCESS_PASSWORD: "troque-esta-senha"
+    volumes:
+      - /DATA/AppData/puxador/data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8790/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: puxador
+  category: Utilities
+  description:
+    pt_br: Extrai dados de MySQL, MariaDB, PostgreSQL e Firebird e gera planilhas XLSX, CSV e PDF.
+  developer: Samuel Noia
+  icon: https://raw.githubusercontent.com/SamuelNoia/puxador/main/docs/v1/img/fluxo.svg
+  title:
+    pt_br: Puxador de Dados
+  port_map: "8790"

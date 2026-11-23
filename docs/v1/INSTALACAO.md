@@ -143,6 +143,18 @@ A cada tag `v*` o GitHub Actions publica em `ghcr.io/samuelnoia/puxador`:
 docker pull ghcr.io/samuelnoia/puxador:latest
 ```
 
+### ZimaOS / CasaOS
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SamuelNoia/puxador/main/install/docker/instalar.sh -o /tmp/puxador.sh
+sudo sh /tmp/puxador.sh
+```
+
+Os dados vão para `/DATA/AppData/puxador/data` (padrão do sistema), a porta 8790 fica publicada e o
+instalador descobre o IP pela rota padrão — o `hostname -I` não existe em algumas versões do ZimaOS.
+Para instalar pelo painel, use [`install/zimaos/docker-compose.yml`](../../install/zimaos/docker-compose.yml).
+Detalhes em [install/README.md](../../install/README.md#zimaos--casaos).
+
 ---
 
 ## Backup e restauração
