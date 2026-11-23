@@ -5,7 +5,7 @@ import { all, get, run, nowIso } from '../db.js';
 import { decrypt } from '../crypto.js';
 import { driver } from '../drivers/index.js';
 import { aplicarFormato, sugerirFormato } from '../format.js';
-import { gerarXlsx, gerarCsv } from '../export.js';
+import { gerarXlsx, gerarCsv, gerarPdfTabela } from '../export.js';
 import { PREVIEW_LIMIT, MAX_ROWS } from '../config.js';
 import { mensagemAmigavel } from '../errors.js';
 
@@ -201,7 +201,7 @@ export function registrar() {
     return { ok: true, total };
   });
 
-  // Exportacao (xlsx | csv)
+  // Exportacao (xlsx | csv | pdf)
   route('POST', '/api/exportar', async (ctx) => {
     const body = ctx.body || {};
     validarPull(body);
@@ -210,7 +210,7 @@ export function registrar() {
     }
     const cfg = cfgDaConexao(body.conexaoId);
     const drv = driver(cfg.kind);
-    const formato = body.formato === 'csv' ? 'csv' : 'xlsx';
+    const formato = ['csv', 'pdf'].includes(body.formato) ? body.formato : 'xlsx';
 
     const pedido = Number(body.limite) > 0 ? Number(body.limite) : MAX_ROWS;
     const spec = montarSpec(cfg, body, Math.min(pedido, MAX_ROWS));
@@ -235,6 +235,18 @@ export function registrar() {
 
     if (formato === 'csv') {
       sendDownload(ctx.res, gerarCsv({ mapeamento, linhas }), `${base}_${carimbo}.csv`, 'text/csv; charset=utf-8');
+    } else if (formato === 'pdf') {
+      sendDownload(
+        ctx.res,
+        gerarPdfTabela({
+          titulo: String(body.titulo || body.tabela || 'Dados'),
+          mapeamento,
+          linhas,
+          orientacao: body.orientacao === 'retrato' ? 'retrato' : 'paisagem',
+        }),
+        `${base}_${carimbo}.pdf`,
+        'application/pdf',
+      );
     } else {
       sendDownload(
         ctx.res,

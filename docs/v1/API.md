@@ -116,7 +116,8 @@ Mesmo corpo (sem `mapeamento`) → `{ "ok": true, "total": 3515 }`.
 
 ### POST `/api/exportar`
 
-Mesmo corpo de `/api/puxar` mais `formato` (`xlsx` | `csv`), `arquivo` e `titulo`.
+Mesmo corpo de `/api/puxar` mais `formato` (`xlsx` | `csv` | `pdf`), `arquivo` e `titulo`.
+Para PDF, `orientacao` aceita `paisagem` (padrão) ou `retrato`.
 Responde o arquivo binário com `Content-Disposition: attachment`.
 
 ### Operadores de filtro
@@ -135,6 +136,19 @@ o formato de cada banco.
 | GET | `/api/mapeamentos?conexao=` | lista |
 | POST | `/api/mapeamentos` | `{ conexaoId, nome, schema, tabela, config }` |
 | DELETE | `/api/mapeamentos/:id` | remove |
+
+`config` guarda a receita da extração:
+
+```json
+{
+  "fontes":  [{ "alias": "t0", "tabela": "item" }, { "alias": "t1", "tabela": "fabricante" }],
+  "colunas": [{ "alias": "t0", "column": "Id", "origem": "t0_Id", "destino": "cod", "formato": "codigo" }],
+  "juncoes": [{ "alias": "t1", "de": "t0", "tabela": "fabricante", "esquerda": "IdFabricante", "direita": "Id" }],
+  "filtros": [{ "table": "t1", "column": "Descricao", "op": "eq", "value": "FERTAK" }],
+  "ordem":   { "table": "t0", "column": "Descricao", "dir": "asc" },
+  "limite":  250
+}
+```
 
 ## Histórico
 

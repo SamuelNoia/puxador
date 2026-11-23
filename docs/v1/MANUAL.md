@@ -32,6 +32,20 @@ Depois de salva, a conexão aparece à direita com quatro ações:
 > Dica: cadastre um usuário de banco **somente leitura**. O Puxador nunca executa `INSERT`,
 > `UPDATE` ou `DELETE`, mas o hábito protege contra acidente.
 
+### Mapeamentos salvos
+
+Abaixo das conexões fica a lista de **Mapeamentos salvos** — as configurações de extração que você
+guardou com **Salvar mapeamento** na tela de resultado.
+
+Cada item mostra o nome, a tabela principal, a conexão, quantas colunas/filtros tem e quando foi salvo.
+
+- **usar** — remonta a tela 2 exatamente como estava: conexão, tabelas, relacionamentos, colunas
+  marcadas (com nome na planilha e formatação), filtros, ordenação e limite. Depois é só clicar em
+  **Puxar dados**.
+- **excluir** — remove o mapeamento (não afeta os dados do ERP).
+
+> Um mapeamento guarda apenas a *receita*; os dados são sempre lidos na hora, do banco.
+
 ---
 
 ## 2 · Puxar dados
@@ -166,6 +180,8 @@ Clique em **Puxar dados** para ir à tela 3.
 - **SQL gerado** (útil para conferir ou reaproveitar).
 - **Exportar Excel** — `.xlsx` com cabeçalho azul, painel congelado e a formatação escolhida.
 - **Exportar CSV** — separador `;` com BOM UTF-8, abre direto no Excel em português.
+- **Exportar PDF** — A4 paisagem, com cabeçalho repetido em todas as páginas, linhas zebradas e
+  numeração “Página X de Y”. Bom para conferência impressa ou envio ao cliente.
 - **Salvar mapeamento** — guarda colunas/filtros/relacionamentos com um nome para reutilizar depois.
 
 > A exportação refaz a consulta com o mesmo mapeamento. Se alguém alterou o banco no meio do caminho,

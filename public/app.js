@@ -6,6 +6,7 @@ const S = {
   bancos: [],
   formatos: [],
   conexoes: [],
+  mapeamentos: [],
   conexaoId: null,
   conexao: null,
   schema: null,
@@ -241,6 +242,159 @@ async function carregarConexoes() {
   S.conexoes = conexoes;
   renderConexoes();
   preencherSelectConexoes();
+}
+
+/* ---------------------------------------------------------------- mapeamentos salvos */
+async function carregarMapeamentos() {
+  try {
+    const { mapeamentos } = await api('/api/mapeamentos');
+    S.mapeamentos = mapeamentos;
+    renderMapeamentos();
+  } catch {
+    S.mapeamentos = [];
+    renderMapeamentos();
+  }
+}
+
+function renderMapeamentos() {
+  const alvo = $('#lista-mapeamentos');
+  const total = (S.mapeamentos || []).length;
+  $('#contador-mapeamentos').textContent = total ? `${total} salvo(s)` : '';
+
+  if (!total) {
+    alvo.innerHTML = '<p class="muted vazio">Nenhum mapeamento salvo. Depois de puxar os dados, use “Salvar mapeamento” na tela de resultado.</p>';
+    return;
+  }
+
+  alvo.innerHTML = S.mapeamentos.map((m) => {
+    const conexao = S.conexoes.find((c) => c.id === m.conexaoId);
+    const qtdColunas = Array.isArray(m.config?.colunas) ? m.config.colunas.length : 0;
+    const qtdFiltros = Array.isArray(m.config?.filtros) ? m.config.filtros.length : 0;
+    const quando = m.atualizadoEm ? new Date(m.atualizadoEm).toLocaleString('pt-BR') : '';
+    return `
+      <div class="item-mapeamento" data-id="${m.id}">
+        <div class="dados">
+          <strong>${esc(m.nome)}</strong>
+          <span>${esc(m.tabela)}${conexao ? ` · ${esc(conexao.nome)}` : ''} · ${qtdColunas} coluna(s)${qtdFiltros ? ` · ${qtdFiltros} filtro(s)` : ''}${quando ? ` · ${esc(quando)}` : ''}</span>
+        </div>
+        <button class="btn sm primary" data-acao="usar-mapa">usar</button>
+        <button class="btn sm danger" data-acao="excluir-mapa">excluir</button>
+      </div>`;
+  }).join('');
+}
+
+function chaveDoSalvo(item) {
+  if (!item) return null;
+  if (item.alias && item.column) return `${item.alias}.${item.column}`;
+  // mapeamentos antigos: so tinham "origem" (alias com _). tenta casar pelo nome normalizado
+  const alvo = String(item.origem || '').replace(/[^\w]/g, '_');
+  for (const chave of S.mapa.keys()) {
+    if (chave.replace(/[^\w]/g, '_') === alvo) return chave;
+  }
+  return null;
+}
+
+/** Reabre um mapeamento salvo na tela de extracao. */
+async function usarMapeamento(id) {
+  const salvo = (S.mapeamentos || []).find((m) => m.id === id);
+  if (!salvo) return;
+  const cfg = salvo.config || {};
+
+  const conexao = S.conexoes.find((c) => c.id === salvo.conexaoId);
+  if (!conexao) return toast('A conexão deste mapeamento não existe mais.', 'erro');
+
+  S.conexaoId = conexao.id;
+  S.conexao = conexao;
+  preencherSelectConexoes();
+
+  S.fontes = [];
+  S.juncoes = [];
+  S.mapa.clear();
+  S.filtros = [];
+  S.recolhidos.clear();
+  S.proxAlias = 1;
+  S.ordemKey = '';
+  S.dir = 'asc';
+
+  try {
+    await carregarSchemas();
+    await carregarTabelas();
+
+    const fontes = Array.isArray(cfg.fontes) && cfg.fontes.length
+      ? cfg.fontes
+      : [{ alias: 't0', tabela: salvo.tabela }];
+
+    for (const f of fontes) {
+      if (!f || !f.tabela) continue;
+      const alias = f.alias || (S.fontes.length === 0 ? 't0' : `t${S.proxAlias++}`);
+      S.fontes.push({ alias, tabela: '', colunas: [], busca: '', carregando: false });
+      // trocarTabelaFonte carrega as colunas e sugere o relacionamento
+      await trocarTabelaFonte(S.fontes.length - 1, f.tabela);
+    }
+
+    // relacionamentos salvos substituem as sugestoes
+    for (const j of Array.isArray(cfg.juncoes) ? cfg.juncoes : []) {
+      const para = j.alias || j.para;
+      if (!para) continue;
+      const existente = S.juncoes.find((x) => x.para === para);
+      const novo = { de: j.de || 't0', para, esquerda: j.esquerda || '', direita: j.direita || '' };
+      if (existente) Object.assign(existente, novo);
+      else S.juncoes.push(novo);
+    }
+
+    reconstruirMapa();
+    for (const item of S.mapa.values()) item.marcada = false;
+
+    for (const c of Array.isArray(cfg.colunas) ? cfg.colunas : []) {
+      const chave = chaveDoSalvo(c);
+      const alvo = chave ? S.mapa.get(chave) : null;
+      if (!alvo) continue;
+      alvo.marcada = true;
+      if (c.destino) alvo.destino = c.destino;
+      if (c.formato) alvo.formato = c.formato;
+      if (c.decimais !== undefined && c.decimais !== null) alvo.decimais = c.decimais;
+    }
+
+    S.filtros = (Array.isArray(cfg.filtros) ? cfg.filtros : [])
+      .filter((f) => f && f.column)
+      .map((f) => ({
+        key: `${f.table && f.table !== 'principal' ? f.table : 't0'}.${f.column}`,
+        op: f.op || 'eq',
+        value: f.value ?? '',
+        value2: f.value2 ?? '',
+      }))
+      .filter((f) => S.mapa.has(f.key));
+
+    if (cfg.ordem && cfg.ordem.column) {
+      const chave = `${cfg.ordem.table || 't0'}.${cfg.ordem.column}`;
+      S.ordemKey = S.mapa.has(chave) ? chave : '';
+      S.dir = cfg.ordem.dir === 'desc' ? 'desc' : 'asc';
+    }
+    const limite = Number(cfg.limite) || 0;
+    $('#limite').value = limite || '';
+
+    renderFontes();
+    renderColunas();
+    renderJuncoes();
+    renderFiltros();
+    renderOrdem();
+    atualizarCartoes();
+    irPara('puxar');
+    toast(`Mapeamento “${salvo.nome}” carregado.`);
+  } catch (e) {
+    toast(`Falha ao carregar o mapeamento: ${e.message}`, 'erro');
+  }
+}
+
+async function excluirMapeamento(id) {
+  if (!confirm('Excluir este mapeamento?')) return;
+  try {
+    await api(`/api/mapeamentos/${id}`, { method: 'DELETE' });
+    toast('Mapeamento excluído.');
+    await carregarMapeamentos();
+  } catch (e) {
+    toast(e.message, 'erro');
+  }
 }
 
 function renderConexoes() {
@@ -933,9 +1087,22 @@ async function exportar(formato) {
 
 async function salvarMapeamento() {
   if (!S.resultado) return toast('Puxe os dados antes de salvar.', 'erro');
-  const nome = prompt('Nome do mapeamento (ex.: Produtos ERP):', `${S.fontes[0]?.tabela || ''}`);
+  const sugestao = S.fontes.map((f) => f.tabela).filter(Boolean).join(' + ');
+  const nome = prompt('Nome do mapeamento (ex.: Produtos ERP):', sugestao);
   if (!nome) return;
+
   const corpo = montarCorpo();
+  const colunas = [...S.mapa.entries()]
+    .filter(([, m]) => m.marcada)
+    .map(([chave, m]) => ({
+      alias: m.alias,
+      column: m.coluna,
+      origem: chave.replace(/[^\w]/g, '_'),
+      destino: m.destino,
+      formato: m.formato,
+      decimais: m.decimais === '' ? undefined : Number(m.decimais),
+    }));
+
   try {
     await api('/api/mapeamentos', {
       method: 'POST',
@@ -944,10 +1111,18 @@ async function salvarMapeamento() {
         nome,
         schema: S.schema,
         tabela: corpo.tabela,
-        config: { colunas: corpo.mapeamento, filtros: corpo.filtros, juncoes: corpo.juncoes, limite: corpo.limite },
+        config: {
+          fontes: S.fontes.filter((f) => f.tabela).map((f) => ({ alias: f.alias, tabela: f.tabela })),
+          colunas,
+          filtros: corpo.filtros,
+          juncoes: corpo.juncoes,
+          ordem: corpo.ordem,
+          limite: corpo.limite,
+        },
       },
     });
     toast('Mapeamento salvo.');
+    await carregarMapeamentos();
   } catch (e) {
     toast(e.message, 'erro');
   }
@@ -1270,6 +1445,15 @@ function ligarEventos() {
   $('#btn-contar').addEventListener('click', contarRegistros);
   $('#btn-export-xlsx').addEventListener('click', () => exportar('xlsx'));
   $('#btn-export-csv').addEventListener('click', () => exportar('csv'));
+  $('#btn-export-pdf').addEventListener('click', () => exportar('pdf'));
+
+  $('#lista-mapeamentos').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-acao]');
+    if (!btn) return;
+    const id = Number(btn.closest('.item-mapeamento').dataset.id);
+    if (btn.dataset.acao === 'usar-mapa') usarMapeamento(id);
+    if (btn.dataset.acao === 'excluir-mapa') excluirMapeamento(id);
+  });
   $('#btn-salvar-mapa').addEventListener('click', salvarMapeamento);
   $('#btn-voltar').addEventListener('click', () => irPara('puxar'));
 
@@ -1310,6 +1494,7 @@ async function iniciar() {
     preencherBancos();
     limparFormulario();
     await carregarConexoes();
+    await carregarMapeamentos();
     renderFontes();
   } catch (e) {
     $('#status-servidor').textContent = 'offline';

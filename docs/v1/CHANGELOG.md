@@ -4,6 +4,25 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.6.0] — 2026-11-23
+
+### Adicionado
+
+- **Mapeamentos salvos na tela inicial**: a aba *Conexões* agora lista os mapeamentos com nome, tabela,
+  conexão, quantidade de colunas/filtros e data. O botão **usar** remonta a tela 2 inteira (conexão,
+  tabelas, relacionamentos, colunas marcadas com destino/formatação, filtros, ordenação e limite);
+  **excluir** remove o mapeamento. O que é salvo passou a incluir as fontes (todas as tabelas) e a
+  origem de cada coluna, permitindo reabrir extrações com relacionamento.
+- **Exportar PDF**: A4 paisagem, cabeçalho repetido em cada página, linhas zebradas e rodapé
+  “Página X de Y”. Gerador próprio (`src/pdf.js`), sem dependência externa; acentos em WinAnsi e
+  caracteres tipográficos convertidos (`—` vira `-`).
+
+### Verificado
+
+- Autoteste: **31/31** (novas verificações da assinatura `%PDF` e do fechamento `%%EOF`).
+- PDF real do ERP (120 linhas, 3 páginas) lido de volta pelo `pdfjs`: cabeçalhos e acentos corretos.
+- Round-trip de mapeamento pela API: salvar → listar → excluir com o `config` completo.
+
 ## [1.5.0] — 2026-11-23
 
 ### Adicionado

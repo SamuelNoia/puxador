@@ -213,6 +213,21 @@ async function main() {
       },
     });
     ok('exporta csv com cabecalho', csv.buffer.toString('utf8').includes('cod produto'));
+
+    const pdf = await api('/api/exportar', {
+      method: 'POST',
+      body: {
+        conexaoId: criada.id,
+        tabela: cfg.tabela,
+        colunas: primeiras.map((p) => p.origem),
+        mapeamento: primeiras,
+        limite: 10,
+        formato: 'pdf',
+      },
+    });
+    const pdfTexto = pdf.buffer.toString('latin1');
+    ok('exporta pdf (assinatura %PDF)', pdfTexto.startsWith('%PDF-1.4'), `${pdf.buffer.length} bytes`);
+    ok('pdf tem paginas e fim', /\/Type \/Page/.test(pdfTexto) && pdfTexto.trimEnd().endsWith('%%EOF'));
   } else {
     console.log('\n  (teste de dados reais ignorado: defina TEST_HOST/TEST_DB/TEST_TABLE)');
   }

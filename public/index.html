@@ -102,6 +102,17 @@
           <div class="card-body" id="lista-conexoes"></div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Mapeamentos salvos</h2>
+            <span class="muted">configurações de extração já montadas — use para repetir sem refazer</span>
+          </div>
+          <span class="muted" id="contador-mapeamentos"></span>
+        </div>
+        <div class="card-body" id="lista-mapeamentos"></div>
+      </div>
     </section>
 
     <!-- ============================================================ PUXAR -->
@@ -224,6 +235,7 @@
           </div>
           <div class="acoes-inline">
             <button class="btn" id="btn-export-csv">Exportar CSV</button>
+            <button class="btn" id="btn-export-pdf">Exportar PDF</button>
             <button class="btn primary" id="btn-export-xlsx">Exportar Excel</button>
             <button class="btn ghost" id="btn-salvar-mapa">Salvar mapeamento</button>
           </div>

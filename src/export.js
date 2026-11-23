@@ -1,6 +1,7 @@
 // Geracao das saidas: XLSX e CSV.
 import { buildXlsx, S } from './xlsx.js';
 import { aplicarFormato } from './format.js';
+import { gerarPdf } from './pdf.js';
 
 /** Aplica o mapeamento (destino/formato) em uma linha crua do banco. */
 export function aplicarLinha(origemColunas, mapeamento, linha) {
@@ -58,4 +59,18 @@ export function gerarCsv({ mapeamento, linhas }) {
     return csvCampo(item.value ?? '');
   }).join(';'));
   return Buffer.from('\ufeff' + [cabecalho, ...corpo].join('\r\n') + '\r\n', 'utf8');
+}
+
+/** PDF em A4 paisagem, com cabecalho, zebra e numeracao de paginas. */
+export function gerarPdfTabela({ titulo, mapeamento, linhas, orientacao = 'paisagem' }) {
+  const colunas = mapeamento.map((m) => m.destino);
+  const corpo = linhas.map((linha) => mapeamento.map((m) => {
+    const item = linha[m.destino] || linha[m.origem] || {};
+    if (item.type === 'n' && typeof item.value === 'number') {
+      const casas = Number.isFinite(Number(m.decimais)) ? Number(m.decimais) : 2;
+      return item.value.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+    }
+    return String(item.value ?? '');
+  }));
+  return gerarPdf({ titulo: titulo || 'Dados', colunas, linhas: corpo, orientacao });
 }

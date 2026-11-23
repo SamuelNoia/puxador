@@ -206,6 +206,27 @@ input[type="checkbox"] { width: auto; }
   letter-spacing: .3px;
 }
 
+.item-mapeamento {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--linha);
+  border-radius: 9px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+.item-mapeamento .dados { flex: 1; min-width: 0; }
+.item-mapeamento .dados strong { display: block; }
+.item-mapeamento .dados span {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
 .vazio { padding: 18px; text-align: center; }
 
 .aviso {
