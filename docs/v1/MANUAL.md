@@ -77,11 +77,19 @@ Todas as colunas de todas as fontes aparecem numa única grade, agrupadas por ta
 | Coluna da grade | Para que serve |
 |---|---|
 | ☑ | marcar/desmarcar a coluna na saída |
+| **Seq** | **posição da coluna na planilha** (1, 2, 3…). Pode digitar outro número para reordenar |
 | **Coluna no banco** | nome técnico, com o tipo e a marcação `PK` quando é chave primária |
 | **Tipo** | tipo no banco (ajuda a decidir a formatação) |
 | **Nome na planilha** | **o cabeçalho que vai sair no arquivo** — é aqui que `Id` vira `cod produto` |
 | **Formatação** | como o valor é convertido |
 | **Decimais** | casas decimais para número/moeda/decimal |
+
+**Ordem das colunas (Seq).** A sequência já vem preenchida na ordem em que você marcou. Para mudar,
+basta digitar outro número: a coluna que receber `1` vai para a primeira posição, e as demais se
+ajustam. O verificador garante que **nunca** fica número repetido, buraco na sequência ou campo vazio —
+se você apagar um número, ele é reatribuído automaticamente ao final. Em empate, vale quem foi editado
+por último. A grade continua agrupada por tabela (para facilitar achar a coluna); quem define a ordem
+final é o número.
 
 Use o campo **pesquisar coluna ou tabela** para achar rápido em tabelas com centenas de colunas.
 Os botões **marcar visíveis / desmarcar visíveis** agem só no que está filtrado pela pesquisa.

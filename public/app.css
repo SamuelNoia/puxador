@@ -251,6 +251,18 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tabela-mapa input[type="text"] { padding: 6px 8px; }
 .tabela-mapa select { padding: 6px 8px; }
 
+/* coluna de sequência (ordem na planilha) */
+.tabela-mapa input.seq {
+  width: 52px;
+  padding: 5px 4px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--azul);
+}
+.tabela-mapa input.seq:disabled { background: #f4f6fa; color: #b7c1cf; font-weight: 400; }
+.tabela-mapa input.seq::-webkit-outer-spin-button,
+.tabela-mapa input.seq::-webkit-inner-spin-button { opacity: .35; }
+
 .tipo-col { font-family: "Cascadia Mono", Consolas, monospace; font-size: 11px; color: var(--muted); }
 
 .tabela-scroll { max-height: 60vh; overflow: auto; }

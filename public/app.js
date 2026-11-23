@@ -345,15 +345,17 @@ async function usarMapeamento(id) {
     reconstruirMapa();
     for (const item of S.mapa.values()) item.marcada = false;
 
-    for (const c of Array.isArray(cfg.colunas) ? cfg.colunas : []) {
+    (Array.isArray(cfg.colunas) ? cfg.colunas : []).forEach((c, indice) => {
       const chave = chaveDoSalvo(c);
       const alvo = chave ? S.mapa.get(chave) : null;
-      if (!alvo) continue;
+      if (!alvo) return;
       alvo.marcada = true;
       if (c.destino) alvo.destino = c.destino;
       if (c.formato) alvo.formato = c.formato;
       if (c.decimais !== undefined && c.decimais !== null) alvo.decimais = c.decimais;
-    }
+      alvo.seq = Number(c.seq) || indice + 1;
+    });
+    normalizarSequencia();
 
     S.filtros = (Array.isArray(cfg.filtros) ? cfg.filtros : [])
       .filter((f) => f && f.column)
@@ -640,6 +642,7 @@ function reconstruirMapa() {
         coluna: c.nome,
         alias: f.alias,
         grupo: f.tabela || `Fonte ${idx + 1}`,
+        seq: 0,
       });
       const item = novo.get(chave);
       item.tipo = c.tipo;
@@ -649,12 +652,13 @@ function reconstruirMapa() {
     }
   });
   S.mapa = novo;
+  normalizarSequencia();
 }
 
 function renderColunas() {
   const corpo = $('#corpo-colunas');
   if (!S.mapa.size) {
-    corpo.innerHTML = '<tr><td colspan="6" class="muted vazio">Sem colunas.</td></tr>';
+    corpo.innerHTML = '<tr><td colspan="7" class="muted vazio">Sem colunas.</td></tr>';
     return;
   }
 
@@ -674,7 +678,7 @@ function renderColunas() {
     const marcadasFonte = visiveis.filter((c) => S.mapa.get(`${f.alias}.${c.nome}`)?.marcada).length;
     linhas.push(`
       <tr class="grupo" data-grupo="${esc(f.alias)}">
-        <td colspan="6">
+        <td colspan="7">
           <button class="btn-mini" data-papel="toggle-grupo" title="${recolhida ? 'expandir' : 'minimizar'}">${recolhida ? '▸' : '▾'}</button>
           <strong>Fonte ${idx + 1} · ${esc(f.tabela || 'sem tabela')}</strong>
           <span class="muted">(${visiveis.length} coluna(s) · ${marcadasFonte} marcada(s))</span>
@@ -695,6 +699,9 @@ function renderColunas() {
       linhas.push(`
         <tr data-chave="${esc(chave)}" class="${m.marcada ? '' : 'desmarcada'}">
           <td><input type="checkbox" data-papel="marcar" ${m.marcada ? 'checked' : ''} /></td>
+          <td><input type="number" class="seq" data-papel="seq" min="1" step="1"
+                     value="${m.marcada && m.seq ? m.seq : ''}" placeholder="—"
+                     ${m.marcada ? '' : 'disabled'} title="posição na planilha" /></td>
           <td><strong>${esc(c.nome)}</strong>${c.chave ? ' <span class="tag">PK</span>' : ''}</td>
           <td class="tipo-col">${esc(c.tipo)}</td>
           <td><input type="text" data-papel="destino" class="${repetido ? 'dup' : ''}" value="${esc(m.destino)}"
@@ -707,7 +714,7 @@ function renderColunas() {
 
   corpo.innerHTML = linhas.length
     ? linhas.join('')
-    : '<tr><td colspan="6" class="muted vazio">Nenhuma coluna encontrada para a pesquisa.</td></tr>';
+    : '<tr><td colspan="7" class="muted vazio">Nenhuma coluna encontrada para a pesquisa.</td></tr>';
   atualizarResumoColunas();
 }
 
@@ -716,8 +723,29 @@ function atualizarResumoColunas() {
   $('#resumo-colunas').textContent = `${marcadas} de ${S.mapa.size} coluna(s)`;
 }
 
-/** Nomes de planilha repetidos entre colunas marcadas (o Excel/CSV sobrescreveria um pelo outro). */
-function destinosDuplicados() {
+/**
+ * Ordena e renumera as colunas: 1..N, sem buracos, sem repetidos e sem vazio.
+ * Quem tem número válido mantém a posição relativa; quem está vazio (ou repetido) vai para o fim.
+ * Empate é decidido por quem foi editado por último.
+ */
+function ordenarPorSequencia(itens) {
+  const valido = (m) => Number.isFinite(Number(m.seq)) && Number(m.seq) > 0;
+  const comNumero = itens
+    .filter(valido)
+    .sort((a, b) => (Number(a.seq) - Number(b.seq)) || ((b.seqEditado || 0) - (a.seqEditado || 0)));
+  const semNumero = itens.filter((m) => !valido(m));
+
+  const ordenadas = [...comNumero, ...semNumero];
+  ordenadas.forEach((m, i) => { m.seq = i + 1; });
+  return ordenadas;
+}
+
+/** Aplica a ordenação às colunas marcadas da grade. */
+function normalizarSequencia() {
+  return ordenarPorSequencia([...S.mapa.values()].filter((m) => m.marcada));
+}
+
+/** Nomes de planilha repetidos entre colunas marcadas (o Excel/CSV sobrescreveria um pelo outro). */function destinosDuplicados() {
   const contagem = new Map();
   for (const m of S.mapa.values()) {
     if (!m.marcada) continue;
@@ -930,8 +958,12 @@ function montarCorpo(extra = {}) {
 
   const selecao = [];
   const mapeamento = [];
-  for (const [chave, m] of S.mapa) {
-    if (!m.marcada || !validos.has(m.alias)) continue;
+  // a ordem da planilha é a sequência definida na grade (coluna "Seq")
+  const marcadasEmOrdem = [...S.mapa.entries()]
+    .filter(([, m]) => m.marcada && validos.has(m.alias))
+    .sort((a, b) => (Number(a[1].seq) || 0) - (Number(b[1].seq) || 0));
+
+  for (const [chave, m] of marcadasEmOrdem) {
     const alias = chave.replace(/[^\w]/g, '_');
     selecao.push({ alias, column: m.coluna, table: m.alias });
     mapeamento.push({
@@ -1094,13 +1126,15 @@ async function salvarMapeamento() {
   const corpo = montarCorpo();
   const colunas = [...S.mapa.entries()]
     .filter(([, m]) => m.marcada)
-    .map(([chave, m]) => ({
+    .sort((a, b) => (Number(a[1].seq) || 0) - (Number(b[1].seq) || 0))
+    .map(([chave, m], indice) => ({
       alias: m.alias,
       column: m.coluna,
       origem: chave.replace(/[^\w]/g, '_'),
       destino: m.destino,
       formato: m.formato,
       decimais: m.decimais === '' ? undefined : Number(m.decimais),
+      seq: Number(m.seq) || indice + 1,
     }));
 
   try {
@@ -1300,17 +1334,39 @@ function ligarEventos() {
     const m = S.mapa.get(linha.dataset.chave);
     const papel = ev.target.dataset.papel;
     if (!m || !papel) return;
-    if (papel === 'marcar') m.marcada = ev.target.checked;
-    if (papel === 'destino') m.destino = ev.target.value;
+
+    if (papel === 'seq') {
+      const n = Number(ev.target.value);
+      m.seq = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+      m.seqEditado = Date.now();
+      normalizarSequencia();
+      renderColunas();
+      return;
+    }
+
+    if (papel === 'marcar') {
+      m.marcada = ev.target.checked;
+      if (!m.marcada) m.seq = 0;
+      normalizarSequencia();
+    }
+    if (papel === 'destino') {
+      // coluna sem nome na planilha volta a usar o nome do banco
+      if (!ev.target.value.trim()) {
+        m.destino = m.coluna;
+        renderColunas();
+      } else {
+        m.destino = ev.target.value;
+        renderColunas();
+      }
+    }
     if (papel === 'formato') m.formato = ev.target.value;
     if (papel === 'decimais') m.decimais = ev.target.value;
     if (papel === 'marcar') {
       linha.classList.toggle('desmarcada', !m.marcada);
       atualizarResumoColunas();
       renderFontes();
+      renderColunas();
     }
-    // ao sair do campo, re-renderiza para atualizar o destaque de nomes repetidos
-    if (papel === 'destino') renderColunas();
   });
 
   $('#btn-todas').addEventListener('click', () => {
@@ -1319,8 +1375,10 @@ function ligarEventos() {
       const busca = S.buscaColunas.trim().toLowerCase();
       if (!busca || m.coluna.toLowerCase().includes(busca) || String(f?.tabela).toLowerCase().includes(busca)) {
         m.marcada = true;
+        m.seq = 0;
       }
     }
+    normalizarSequencia();
     renderColunas();
     renderFontes();
   });
@@ -1331,8 +1389,10 @@ function ligarEventos() {
       const busca = S.buscaColunas.trim().toLowerCase();
       if (!busca || m.coluna.toLowerCase().includes(busca) || String(f?.tabela).toLowerCase().includes(busca)) {
         m.marcada = false;
+        m.seq = 0;
       }
     }
+    normalizarSequencia();
     renderColunas();
     renderFontes();
   });
@@ -1367,8 +1427,10 @@ function ligarEventos() {
       const m = S.mapa.get(chave);
       if (m) {
         m.marcada = true;
+        m.seq = 0;
         if (!m.destino || m.destino === m.coluna) m.destino = `${fontePorAlias(j.para).tabela}_${m.coluna}`;
       }
+      normalizarSequencia();
       renderColunas();
       renderFontes();
       renderJuncoes();
@@ -1377,7 +1439,11 @@ function ligarEventos() {
 
     if (papel === 'saida-marcar') {
       const m = S.mapa.get(ev.target.closest('.saida-linha').dataset.chave);
-      if (m) m.marcada = ev.target.checked;
+      if (m) {
+        m.marcada = ev.target.checked;
+        if (!m.marcada) m.seq = 0;
+      }
+      normalizarSequencia();
       renderColunas();
       renderFontes();
       renderJuncoes();

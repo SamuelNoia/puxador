@@ -4,6 +4,24 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.8.0] — 2026-11-23
+
+### Adicionado
+
+- **Coluna “Seq” na grade**: a ordem das colunas na planilha/CSV/PDF passou a ser definida por um número
+  editável em cada linha (vem preenchido na ordem em que as colunas foram marcadas). Trocar o número
+  reordena a saída — `1` vai para a primeira posição.
+- **Verificador de sequência**: nunca sobra número repetido, buraco (1, 5, 9) ou campo vazio — o que
+  faltar é reatribuído automaticamente ao fim; em empate vence quem foi editado por último.
+- Coluna sem “Nome na planilha” volta a usar o nome do banco (não sai cabeçalho vazio).
+- `npm run test:seq` (`tools/test-sequencia.mjs`): 9 verificações da ordenação, extraindo a função real
+  do `public/app.js`.
+
+### Alterado
+
+- A ordem do `mapeamento` enviado à API segue a sequência definida, então o XLSX/CSV/PDF saem na mesma
+  ordem da grade — e o mapeamento salvo guarda essa sequência para reabrir igual.
+
 ## [1.7.0] — 2026-11-23
 
 ### Adicionado
