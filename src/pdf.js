@@ -169,7 +169,7 @@ export function gerarPdf({ titulo = 'Puxador de Dados', colunas = [], linhas = [
     primeiras[2] = cortar(todas.slice(2).join(' '), larguras[i] - 8, tamanhoCab);
     return primeiras;
   });
-  const alturaCabecalho = Math.max(1, ...cabecalhoLinhas.map((l) => l.length)) * (tamanhoCab + 2) + 6;
+  const alturaCabecalho = Math.max(1, ...cabecalhoLinhas.map((l) => l.length)) * (tamanhoCab + 2) + 10;
 
   // prepara cada linha (com ou sem quebra) e sua altura
   const linhasRender = linhas.map((linha) => {
@@ -223,7 +223,8 @@ export function gerarPdf({ titulo = 'Puxador de Dados', colunas = [], linhas = [
     for (let i = 0; i < colunas.length; i += 1) {
       const linhasCab = cabecalhoLinhas[i] || [''];
       linhasCab.forEach((texto, ordem) => {
-        const y = topo - 4 - ordem * (tamanhoCab + 2);
+        // baseline desce o suficiente para o topo do glifo ficar dentro da faixa azul
+        const y = topo - 4 - tamanhoCab * 0.8 - ordem * (tamanhoCab + 2);
         partes.push(`BT /F2 ${tamanhoCab} Tf ${(cx + 4).toFixed(2)} ${y.toFixed(2)} Td (${escaparPdf(texto)}) Tj ET`);
       });
       cx += larguras[i];

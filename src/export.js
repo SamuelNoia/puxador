@@ -66,6 +66,8 @@ export function gerarCsv({ mapeamento, linhas }) {
 function numeroParaPdf(item, formato, decimais) {
   if (item.type !== 'n' || typeof item.value !== 'number') return String(item.value ?? '');
   const casas = decimais === undefined || decimais === null || decimais === '' ? 2 : Number(decimais);
+  const opcoes = { minimumFractionDigits: casas, maximumFractionDigits: casas };
+
   if (formato === 'numero_limpo') {
     const max = Number.isFinite(casas) && casas > 0 ? casas : 6;
     return item.value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: max });
@@ -73,10 +75,11 @@ function numeroParaPdf(item, formato, decimais) {
   if (formato === 'inteiro') {
     return item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
   }
-  return item.value.toLocaleString('pt-BR', {
-    minimumFractionDigits: casas,
-    maximumFractionDigits: casas,
-  });
+  if (formato === 'percentual') {
+    // o valor ja vem em pontos percentuais (66.67 = 66,67%): nao multiplica por 100
+    return `${item.value.toLocaleString('pt-BR', opcoes)}%`;
+  }
+  return item.value.toLocaleString('pt-BR', opcoes);
 }
 
 /** PDF em A4, com cabecalho, zebra, numeracao de paginas e opcoes visuais. */

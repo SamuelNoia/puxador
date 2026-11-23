@@ -79,6 +79,12 @@ for (const [, grupo] of porLinha) {
 }
 ok('nenhum texto invade a coluna vizinha', sobrepostos === 0, `${sobrepostos} sobreposicoes`);
 
+// o cabecalho precisa ficar DENTRO da faixa azul (topo = altura da pagina - margem)
+const topo = 595.28 - 28;
+const acimaDaFaixa = itens.filter((i) => i.y > topo - 3);
+ok('cabecalho nao fica cortado no topo da faixa', acimaDaFaixa.length === 0,
+  `${acimaDaFaixa.length} itens acima de ${topo.toFixed(1)}`);
+
 const larguras = calcularLarguras(colunas, linhasFmt, 841.89 - 56, TAM);
 const larguraDescricao = larguras[1];
 const maiorNumero = Math.max(...[0, 2, 3, 4, 5, 6, 7, 8].map((i) => larguras[i]));

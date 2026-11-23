@@ -4,6 +4,26 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.9.2] — 2026-11-23
+
+### Corrigido
+
+- **PDF: cabeçalho cortado no topo da faixa azul.** A linha de base do texto ficava a 4 pt do topo da
+  faixa, e o topo das letras subia acima dela. Agora a linha de base desce o equivalente ao ascender
+  (0,8 × tamanho da fonte) e a faixa ganhou 4 pt de respiro.
+- **Excel: porcentagem multiplicada por 100** (`66,67` aparecia como `6667,0%`). O formato era `0.0%`,
+  que multiplica o valor; passou a ser **`0.00"%"`** (porcentagem literal), então `66,67` aparece como
+  `66,67%`. No PDF o `%` também passou a ser exibido.
+
+### Verificado
+
+- Confirmado por teste que o **cabeçalho do Excel usa o nome renomeado** na plataforma
+  (`Fabricante`, `Margem Bruto`) e não o nome interno (`t0_Id`, `t1_Descricao`). Um arquivo com os
+  nomes crus é de uma exportação anterior ao renomeio — a data no nome do arquivo mostra isso.
+- Novo `npm run test:xlsx` (`tools/test-xlsx.mjs`): 5 verificações de cabeçalho e formato de
+  porcentagem.
+- `npm run test:pdf` ganhou a checagem “cabeçalho não fica cortado no topo da faixa”.
+
 ## [1.9.1] — 2026-11-23
 
 ### Corrigido
