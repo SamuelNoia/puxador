@@ -701,7 +701,9 @@ function renderColunas() {
           <td><input type="checkbox" data-papel="marcar" ${m.marcada ? 'checked' : ''} /></td>
           <td><input type="number" class="seq" data-papel="seq" min="1" step="1"
                      value="${m.marcada && m.seq ? m.seq : ''}" placeholder="—"
-                     ${m.marcada ? '' : 'disabled'} title="posição na planilha" /></td>
+                     ${m.marcada ? '' : 'disabled'}
+                     title="posição da coluna na planilha — digite outro número para reordenar"
+                     aria-label="ordem da coluna ${esc(c.nome)}" /></td>
           <td><strong>${esc(c.nome)}</strong>${c.chave ? ' <span class="tag">PK</span>' : ''}</td>
           <td class="tipo-col">${esc(c.tipo)}</td>
           <td><input type="text" data-papel="destino" class="${repetido ? 'dup' : ''}" value="${esc(m.destino)}"
@@ -720,7 +722,10 @@ function renderColunas() {
 
 function atualizarResumoColunas() {
   const marcadas = [...S.mapa.values()].filter((m) => m.marcada).length;
-  $('#resumo-colunas').textContent = `${marcadas} de ${S.mapa.size} coluna(s)`;
+  const ordem = marcadas
+    ? ` · ordem 1–${Math.max(...[...S.mapa.values()].filter((m) => m.marcada).map((m) => Number(m.seq) || 0))}`
+    : '';
+  $('#resumo-colunas').textContent = `${marcadas} de ${S.mapa.size} coluna(s)${ordem}`;
 }
 
 /**
