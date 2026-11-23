@@ -7,6 +7,7 @@
 //   TEST_USER=z_mat TEST_PASS=z2025 TEST_TABLE=item node tools/selftest.js
 import zlib from 'node:zlib';
 import { buildSelect, buildCount } from '../src/query.js';
+import { aplicarFormato } from '../src/format.js';
 
 const BASE = process.env.BASE_URL || `http://127.0.0.1:${process.env.PORT || 8790}`;
 
@@ -111,10 +112,29 @@ async function api(caminho, opcoes = {}) {  const resp = await fetch(BASE + cami
   return { buffer: Buffer.from(await resp.arrayBuffer()), status: resp.status };
 }
 
+/** Testes de formatação de valores (sem banco). */
+function testarFormatos() {
+  const inteiro = aplicarFormato('41.000000', 'numero_limpo', 6);
+  ok('numero_limpo remove zeros a direita (41.000000 -> 41)', inteiro.value === 41 && inteiro.type === 'n');
+
+  const meio = aplicarFormato('1.500000', 'numero_limpo', 6);
+  ok('numero_limpo mantem 1,5', meio.value === 1.5);
+
+  const zero = aplicarFormato('0.000000', 'numero_limpo', 6);
+  ok('numero_limpo trata zero', zero.value === 0);
+
+  const moeda = aplicarFormato('1.234,56', 'moeda', 2);
+  ok('moeda aceita pt-BR', moeda.value === 1234.56 && moeda.type === 'n');
+
+  const data = aplicarFormato('2024-09-02 09:05:00', 'data');
+  ok('data formata dd/mm/aaaa', data.value === '02/09/2024', data.value);
+}
+
 async function main() {
   console.log(`\nPuxador de Dados — autoteste (${BASE})\n`);
 
   testarSql();
+  testarFormatos();
 
   const saude = await api('/api/health');
   ok('servidor responde /api/health', saude.ok === true);

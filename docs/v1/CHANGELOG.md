@@ -4,6 +4,25 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.9.0] — 2026-11-23
+
+### Adicionado
+
+- **Formato “Número (sem zeros à direita)”**: `41.000000` sai como `41` e `1.500000` como `1,5` — na
+  prévia, no PDF e no Excel (célula em formato Geral). Ótimo para quantidades.
+- **Card “6 · Impressão e aparência”** no fim da tela 2:
+  - **quebrar linha nas células** (PDF com linha mais alta; Excel com `wrapText`);
+  - **tamanho da letra** de 6 a 12 pt (PDF);
+  - **formato de impressão**: A4 paisagem ou A4 retrato.
+  As escolhas são salvas junto com o mapeamento e voltam ao reabri-lo.
+
+### Alterado
+
+- O gerador de PDF passou a paginar por **altura real de cada linha** (com quebra de texto), em vez de
+  um número fixo de linhas por página.
+- Excel ganhou o estilo numérico `#,##0.00` para os formatos *Número/Decimal* (antes saíam em Geral).
+- Autoteste: **37 verificações** (novas checagens de formatação numérica e de data).
+
 ## [1.8.2] — 2026-11-23
 
 ### Corrigido

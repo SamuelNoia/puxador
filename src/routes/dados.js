@@ -233,6 +233,12 @@ export function registrar() {
     const carimbo = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
     const base = path.basename(String(body.arquivo || body.tabela || 'dados')).replace(/[^\w.-]+/g, '_');
 
+    // configurações visuais (card "Impressão e aparência")
+    const visual = body.visual && typeof body.visual === 'object' ? body.visual : {};
+    const quebrarLinha = visual.quebrarLinha !== false;
+    const orientacao = visual.orientacao === 'retrato' ? 'retrato' : 'paisagem';
+    const fonteTam = Number(visual.fonteTam) || undefined;
+
     if (formato === 'csv') {
       sendDownload(ctx.res, gerarCsv({ mapeamento, linhas }), `${base}_${carimbo}.csv`, 'text/csv; charset=utf-8');
     } else if (formato === 'pdf') {
@@ -242,7 +248,9 @@ export function registrar() {
           titulo: String(body.titulo || body.tabela || 'Dados'),
           mapeamento,
           linhas,
-          orientacao: body.orientacao === 'retrato' ? 'retrato' : 'paisagem',
+          orientacao,
+          quebrarLinha,
+          fonteTam,
         }),
         `${base}_${carimbo}.pdf`,
         'application/pdf',
@@ -250,7 +258,12 @@ export function registrar() {
     } else {
       sendDownload(
         ctx.res,
-        gerarXlsx({ titulo: String(body.titulo || body.tabela || 'Dados'), mapeamento, linhas }),
+        gerarXlsx({
+          titulo: String(body.titulo || body.tabela || 'Dados'),
+          mapeamento,
+          linhas,
+          quebrarLinha,
+        }),
         `${base}_${carimbo}.xlsx`,
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );

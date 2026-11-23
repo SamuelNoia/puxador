@@ -6,6 +6,7 @@ export const FORMATOS = [
   { id: 'texto', label: 'Texto', decimais: false },
   { id: 'codigo', label: 'Codigo (texto, mantem zeros)', decimais: false },
   { id: 'numero', label: 'Numero', decimais: true },
+  { id: 'numero_limpo', label: 'Numero (sem zeros a direita)', decimais: true },
   { id: 'inteiro', label: 'Inteiro', decimais: false },
   { id: 'decimal', label: 'Decimal', decimais: true },
   { id: 'moeda', label: 'Moeda (R$)', decimais: true },
@@ -120,6 +121,14 @@ export function aplicarFormato(value, formato = 'original', decimais) {
       const n = toNumber(value);
       if (n === null) return { value: '', type: 's' };
       return { value: Number(n.toFixed(decimais ?? 2)), type: 'n' };
+    }
+
+    case 'numero_limpo': {
+      // numero sem zeros a direita: 41.000000 -> 41 | 1.500000 -> 1.5
+      const n = toNumber(value);
+      if (n === null) return { value: '', type: 's' };
+      const casas = decimais === undefined || decimais === null ? 6 : Number(decimais);
+      return { value: Number(n.toFixed(casas)), type: 'n' };
     }
 
     case 'inteiro': {

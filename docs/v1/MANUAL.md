@@ -112,6 +112,7 @@ O botão **minimizar** no topo recolhe a grade inteira; ele vira **expandir** pa
 | Texto | converte em texto |
 | Código | texto preservando zeros à esquerda (`000123`) |
 | Número | numérico com casas configuráveis |
+| **Número (sem zeros à direita)** | `41.000000` vira `41`, `1.500000` vira `1,5` — ideal para quantidades e códigos numéricos |
 | Inteiro | arredonda para inteiro |
 | Decimal | numérico com casas configuráveis |
 | Moeda (R$) | numérico no formato de moeda do Excel |
@@ -176,6 +177,18 @@ Os valores vão como parâmetros para o banco — não há risco de injeção.
 **Contar registros** executa um `COUNT(*)` com os mesmos filtros e relacionamentos, sem carregar os dados.
 
 Clique em **Puxar dados** para ir à tela 3.
+
+### 6 · Impressão e aparência
+
+No fim da tela ficam as opções que valem para os arquivos exportados:
+
+| Opção | Efeito |
+|---|---|
+| **Quebrar linha nas células** | texto longo desce dentro da célula em vez de ser cortado (vale para PDF e Excel; no PDF a linha fica mais alta, no Excel o texto quebra na célula) |
+| **Tamanho da letra** | 6 a 12 pt no PDF |
+| **Formato de impressão** | **A4 paisagem** (padrão, cabe mais coluna) ou **A4 retrato** |
+
+Essas escolhas vão junto quando você salva um mapeamento e voltam ao reabri-lo.
 
 ---
 

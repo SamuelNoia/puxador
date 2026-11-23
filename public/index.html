@@ -230,6 +230,44 @@
           </div>
         </div>
       </div>
+
+      <div class="card" id="card-visual" hidden>
+        <div class="card-head">
+          <div>
+            <h2>6 · Impressão e aparência</h2>
+            <span class="muted">vale para o PDF e para o Excel exportados</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <label class="field check">
+              <input type="checkbox" id="vis-quebra" checked />
+              <span>Quebrar linha nas células (texto longo em várias linhas)</span>
+            </label>
+            <label class="field" style="max-width:170px">
+              <span>Tamanho da letra</span>
+              <select id="vis-fonte">
+                <option value="6">6 pt (menor)</option>
+                <option value="7">7 pt</option>
+                <option value="7.5" selected>7,5 pt</option>
+                <option value="9">9 pt</option>
+                <option value="10">10 pt</option>
+                <option value="12">12 pt (maior)</option>
+              </select>
+            </label>
+            <label class="field" style="max-width:220px">
+              <span>Formato de impressão</span>
+              <select id="vis-orientacao">
+                <option value="paisagem" selected>A4 paisagem</option>
+                <option value="retrato">A4 retrato</option>
+              </select>
+            </label>
+          </div>
+          <p class="muted" style="margin:0;font-size:12px">
+            A quebra de linha também deixa a linha mais alta no Excel; o tamanho da letra e o formato do papel valem para o PDF.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================================ RESULTADO -->

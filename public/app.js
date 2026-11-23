@@ -375,6 +375,16 @@ async function usarMapeamento(id) {
     const limite = Number(cfg.limite) || 0;
     $('#limite').value = limite || '';
 
+    if (cfg.visual) {
+      if ($('#vis-quebra')) $('#vis-quebra').checked = cfg.visual.quebrarLinha !== false;
+      if ($('#vis-orientacao')) $('#vis-orientacao').value = cfg.visual.orientacao === 'retrato' ? 'retrato' : 'paisagem';
+      if ($('#vis-fonte')) {
+        const opcao = String(cfg.visual.fonteTam || '7.5');
+        const existe = [...$('#vis-fonte').options].some((o) => o.value === opcao);
+        $('#vis-fonte').value = existe ? opcao : '7.5';
+      }
+    }
+
     renderFontes();
     renderColunas();
     renderJuncoes();
@@ -1008,6 +1018,11 @@ function montarCorpo(extra = {}) {
     filtros,
     ordem,
     limite: Number($('#limite')?.value) || 0,
+    visual: {
+      quebrarLinha: $('#vis-quebra') ? $('#vis-quebra').checked : true,
+      fonteTam: Number($('#vis-fonte')?.value) || 7.5,
+      orientacao: $('#vis-orientacao')?.value === 'retrato' ? 'retrato' : 'paisagem',
+    },
     mapeamento,
     tipos: [...S.mapa.entries()].map(([chave, m]) => ({ nome: chave.replace(/[^\w]/g, '_'), tipo: m.tipo })),
     ...extra,
@@ -1019,6 +1034,7 @@ function atualizarCartoes() {
   $('#card-colunas').hidden = !temTabela;
   $('#card-juncoes').hidden = !temTabela || S.fontes.length < 2;
   $('#card-filtros').hidden = !temTabela;
+  $('#card-visual').hidden = !temTabela;
 }
 
 async function puxarDados() {
@@ -1064,13 +1080,18 @@ async function contarRegistros() {
   }
 }
 
-function valorCelula(item) {
+function valorCelula(item, formato) {
   if (!item) return '';
   if (item.type === 'n') {
     const n = Number(item.value);
-    return Number.isFinite(n)
-      ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : String(item.value);
+    if (!Number.isFinite(n)) return String(item.value);
+    if (formato === 'numero_limpo') {
+      return n.toLocaleString('pt-BR', { maximumFractionDigits: 6 });
+    }
+    if (formato === 'inteiro') {
+      return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+    }
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   return String(item.value ?? '');
 }
@@ -1089,7 +1110,7 @@ function renderResultado(dados) {
     .map((c) => {
       const item = linha[c.destino];
       const classe = item && item.type === 'n' ? ' class="num"' : '';
-      return `<td${classe}>${esc(valorCelula(item))}</td>`;
+      return `<td${classe}>${esc(valorCelula(item, c.formato))}</td>`;
     }).join('')}</tr>`).join('');
 }
 
@@ -1157,6 +1178,7 @@ async function salvarMapeamento() {
           juncoes: corpo.juncoes,
           ordem: corpo.ordem,
           limite: corpo.limite,
+          visual: corpo.visual,
         },
       },
     });

@@ -1,4 +1,4 @@
-// Geracao das saidas: XLSX e CSV.
+// Geracao das saidas: XLSX, CSV e PDF.
 import { buildXlsx, S } from './xlsx.js';
 import { aplicarFormato } from './format.js';
 import { gerarPdf } from './pdf.js';
@@ -12,13 +12,17 @@ export function aplicarLinha(origemColunas, mapeamento, linha) {
   });
 }
 
-function celulaXlsx(item, formato) {
+function celulaXlsx(item, formato, quebrarLinha) {
   if (item.value === '' || item.value === null || item.value === undefined) return null;
   if (item.type === 'n' && formato !== 'codigo') {
-    const estilo = formato === 'moeda' ? S.money : (formato === 'percentual' ? S.pct : S.value);
+    let estilo = S.value;
+    if (formato === 'moeda') estilo = S.money;
+    else if (formato === 'percentual') estilo = S.pct;
+    else if (formato === 'numero' || formato === 'decimal') estilo = S.decimal;
+    // 'numero_limpo' fica em General (o Excel esconde os zeros a direita)
     return { v: item.value, s: estilo };
   }
-  return { v: String(item.value), s: S.cell };
+  return { v: String(item.value), s: quebrarLinha ? S.wrap : S.cell };
 }
 
 /**
@@ -26,21 +30,18 @@ function celulaXlsx(item, formato) {
  * mapeamento: [{ destino, formato }]
  * linhas: [{ origem: valor }]
  */
-export function gerarXlsx({ titulo, mapeamento, linhas, larguras }) {
+export function gerarXlsx({ titulo, mapeamento, linhas, larguras, quebrarLinha = false }) {
   const header = mapeamento.map((m) => ({ v: m.destino, s: S.header }));
   const rows = [header];
   for (const linha of linhas) {
-    rows.push(mapeamento.map((m) => celulaXlsx(linha[m.destino] || linha[m.origem] || {}, m.formato)));
+    rows.push(mapeamento.map((m) => celulaXlsx(linha[m.destino] || linha[m.origem] || {}, m.formato, quebrarLinha)));
   }
-  const cols = (larguras && larguras.length ? larguras : mapeamento.map((m) => Math.min(45, Math.max(10, String(m.destino).length + 6))));
+  const cols = (larguras && larguras.length
+    ? larguras
+    : mapeamento.map((m) => Math.min(45, Math.max(10, String(m.destino).length + 6))));
 
   return buildXlsx([
-    {
-      name: titulo || 'Dados',
-      cols,
-      rows,
-      freeze: 'A2',
-    },
+    { name: titulo || 'Dados', cols, rows, freeze: 'A2' },
   ], { title: titulo || 'Puxador de Dados', creator: 'Puxador de Dados' });
 }
 
@@ -61,16 +62,36 @@ export function gerarCsv({ mapeamento, linhas }) {
   return Buffer.from('\ufeff' + [cabecalho, ...corpo].join('\r\n') + '\r\n', 'utf8');
 }
 
-/** PDF em A4 paisagem, com cabecalho, zebra e numeracao de paginas. */
-export function gerarPdfTabela({ titulo, mapeamento, linhas, orientacao = 'paisagem' }) {
+/** Numero para exibir no PDF, respeitando o formato escolhido. */
+function numeroParaPdf(item, formato, decimais) {
+  if (item.type !== 'n' || typeof item.value !== 'number') return String(item.value ?? '');
+  const casas = decimais === undefined || decimais === null || decimais === '' ? 2 : Number(decimais);
+  if (formato === 'numero_limpo') {
+    const max = Number.isFinite(casas) && casas > 0 ? casas : 6;
+    return item.value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: max });
+  }
+  if (formato === 'inteiro') {
+    return item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  }
+  return item.value.toLocaleString('pt-BR', {
+    minimumFractionDigits: casas,
+    maximumFractionDigits: casas,
+  });
+}
+
+/** PDF em A4, com cabecalho, zebra, numeracao de paginas e opcoes visuais. */
+export function gerarPdfTabela({ titulo, mapeamento, linhas, orientacao = 'paisagem', quebrarLinha = true, fonteTam }) {
   const colunas = mapeamento.map((m) => m.destino);
   const corpo = linhas.map((linha) => mapeamento.map((m) => {
     const item = linha[m.destino] || linha[m.origem] || {};
-    if (item.type === 'n' && typeof item.value === 'number') {
-      const casas = Number.isFinite(Number(m.decimais)) ? Number(m.decimais) : 2;
-      return item.value.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
-    }
-    return String(item.value ?? '');
+    return numeroParaPdf(item, m.formato, m.decimais);
   }));
-  return gerarPdf({ titulo: titulo || 'Dados', colunas, linhas: corpo, orientacao });
+  return gerarPdf({
+    titulo: titulo || 'Dados',
+    colunas,
+    linhas: corpo,
+    orientacao,
+    quebrarLinha,
+    fonteTam,
+  });
 }

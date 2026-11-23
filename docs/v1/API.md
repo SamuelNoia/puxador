@@ -120,6 +120,18 @@ Mesmo corpo de `/api/puxar` mais `formato` (`xlsx` | `csv` | `pdf`), `arquivo` e
 Para PDF, `orientacao` aceita `paisagem` (padrão) ou `retrato`.
 Responde o arquivo binário com `Content-Disposition: attachment`.
 
+Opções visuais (valem para PDF e XLSX):
+
+```json
+"visual": { "quebrarLinha": true, "fonteTam": 7.5, "orientacao": "paisagem" }
+```
+
+| Campo | Efeito |
+|---|---|
+| `quebrarLinha` | quebra o texto dentro da célula (PDF com linha mais alta, XLSX com wrap) |
+| `fonteTam` | 5 a 14 pt (só PDF) |
+| `orientacao` | `paisagem` ou `retrato` (só PDF) |
+
 ### Operadores de filtro
 
 `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `like` (contém), `notlike`, `starts` (começa com),

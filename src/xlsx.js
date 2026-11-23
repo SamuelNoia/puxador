@@ -228,6 +228,7 @@ export const S = {
   smallCenter: 21,
   moneyPlain: 22,
   headerLeft: 23,
+  decimal: 24,
 };
 
 const THEME_PADRAO = {
@@ -316,6 +317,8 @@ function stylesXml(input) {
     '<xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>',
     '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>',
     '<xf numFmtId="0" fontId="4" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>',
+    // 24 - numero com 2 casas fixas (#,##0.00), sem moeda
+    '<xf numFmtId="165" fontId="0" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>',
   ].join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -329,7 +332,7 @@ function stylesXml(input) {
 <fills count="6">${fills}</fills>
 <borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>${borda}</borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="24">
+<cellXfs count="25">
 ${xfs}
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
