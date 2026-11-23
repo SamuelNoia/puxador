@@ -4,6 +4,23 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.5.0] — 2026-11-23
+
+### Adicionado
+
+- **Campo de busca em todos os selects longos**: relacionamento (Tabela 1, Tabela 2 e as duas colunas),
+  coluna do filtro e ordenação. A filtragem acontece enquanto se digita, **ignorando maiúsculas,
+  minúsculas e acentos** (`idncm` encontra `IdNcm`, `descricao` encontra `Descrição`). Quando sobra uma
+  única opção, ela é selecionada automaticamente; a opção já escolhida nunca desaparece da lista.
+- `npm run test:busca` (`tools/test-busca.mjs`): teste com DOM real (jsdom) que extrai as funções do
+  `public/app.js` e valida maiúsculas/minúsculas, acentos, limpeza da busca e opção selecionada.
+  O `check:ui` também passou a exigir que esses cinco selects estejam dentro do combo com busca.
+
+### Alterado
+
+- `jsdom` adicionado como **dependência de desenvolvimento** (não entra na imagem Docker nem na
+  instalação do usuário, que usam `--omit=dev`).
+
 ## [1.4.0] — 2026-11-21
 
 ### Adicionado

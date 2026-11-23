@@ -39,6 +39,11 @@ Depois de salva, a conexão aparece à direita com quatro ações:
 A tela é numerada na ordem em que você trabalha: **1** tabelas → **2** colunas → **3** relacionamentos
 → **4** filtros → **5** ordenação e limite.
 
+> **Pesquisa em todo campo de seleção.** Os campos com muitas opções (tabelas, colunas, tabela
+> relacionada, coluna do filtro, ordenação) têm um campo de busca logo acima da lista: basta digitar
+> parte do nome e a lista diminui na hora, **ignorando maiúsculas/minúsculas e acentos**
+> (`descricao` encontra `Descrição`). Se sobrar só uma opção, ela é selecionada automaticamente.
+
 ### 1 · Tabelas e colunas
 
 1. Escolha a **conexão** no canto superior direito do cartão.

@@ -38,5 +38,18 @@ const mojibake = ['\u00c3', '\u00e2\u20ac', '\u00c2\u00b7'].filter((s) => js.inc
 console.log(`Textos corrompidos (mojibake): ${mojibake.length}`);
 if (mojibake.length) problemas += 1;
 
+// selects longos precisam estar dentro do combo com busca
+const selectsComBusca = ['t1', 'c1', 't2', 'c2', 'coluna'];
+const semBusca = selectsComBusca.filter((p) => !js.includes(`comBusca(\`<select data-papel="${p}">`));
+console.log(`Selects com campo de busca: ${selectsComBusca.length - semBusca.length}/${selectsComBusca.length}`);
+if (semBusca.length) {
+  problemas += semBusca.length;
+  console.log('  sem busca:', semBusca.join(', '));
+}
+if (!js.includes("classList.contains('combo-busca')")) {
+  problemas += 1;
+  console.log('  FALTANDO: o filtro global do .combo-busca');
+}
+
 console.log(problemas ? `\n${problemas} problema(s) de interface.\n` : '\nInterface consistente.\n');
 process.exit(problemas ? 1 : 0);

@@ -15,7 +15,6 @@ const S = {
   mapa: new Map(),   // 't0.Id' -> { marcada, destino, formato, decimais, tipo, coluna, alias, grupo }
   filtros: [],       // [{ key, op, value, value2 }]
   buscaColunas: '',
-  buscaFiltro: '',
   recolhidos: new Set(),   // fontes minimizadas na grade de colunas
   ordemKey: '',
   dir: 'asc',
@@ -41,6 +40,49 @@ function toast(msg, tipo = '') {
   clearTimeout(el._t);
   el._t = setTimeout(() => { el.hidden = true; }, 3800);
 }
+
+/** Normaliza texto para busca: minúsculas e sem acentos (ex.: "Descrição" -> "descricao"). */
+function normalizarBusca(texto) {
+  return String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/** Envolve um <select> com um campo de busca que filtra as opções enquanto digita. */
+function comBusca(selectHtml, placeholder = 'pesquisar…') {
+  return `<div class="combo">
+      <input type="search" class="combo-busca" placeholder="${placeholder}" autocomplete="off" />
+      ${selectHtml}
+    </div>`;
+}
+
+/** Filtra as opções do select (mantém a opção selecionada sempre visível). */
+function filtrarSelect(select, termo) {
+  if (!select) return;
+  const busca = normalizarBusca(termo);
+  const atual = select.value;
+  for (const opt of select.options) {
+    const combina = !busca || normalizarBusca(opt.textContent).includes(busca) || opt.value === atual;
+    opt.hidden = !combina;
+    opt.disabled = !combina;
+    opt.style.display = combina ? '' : 'none';
+  }
+  // se sobrou uma única opção visível, já seleciona
+  const visiveis = [...select.options].filter((o) => !o.hidden && o.value !== '');
+  if (busca && visiveis.length === 1 && select.value !== visiveis[0].value) {
+    select.value = visiveis[0].value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
+
+// busca global para qualquer select envolvido por comBusca()
+document.addEventListener('input', (ev) => {
+  if (!ev.target.classList || !ev.target.classList.contains('combo-busca')) return;
+  const select = ev.target.parentElement.querySelector('select');
+  filtrarSelect(select, ev.target.value);
+});
 
 let pedindoLogin = false;
 
@@ -615,20 +657,20 @@ function renderJuncoes() {
         <div class="rel-linha">
           <label class="field">
             <span>Tabela 1</span>
-            <select data-papel="t1">${tabela1}</select>
+            ${comBusca(`<select data-papel="t1">${tabela1}</select>`, 'pesquisar tabela…')}
           </label>
           <label class="field">
             <span>Coluna</span>
-            <select data-papel="c1">${colunas1}</select>
+            ${comBusca(`<select data-papel="c1">${colunas1}</select>`, 'pesquisar coluna…')}
           </label>
           <span class="rel-igual">=</span>
           <label class="field">
             <span>Tabela 2</span>
-            <select data-papel="t2">${todasTabelas}</select>
+            ${comBusca(`<select data-papel="t2">${todasTabelas}</select>`, 'pesquisar tabela…')}
           </label>
           <label class="field">
             <span>Coluna</span>
-            <select data-papel="c2">${colunas2}</select>
+            ${comBusca(`<select data-papel="c2">${colunas2}</select>`, 'pesquisar coluna…')}
           </label>
         </div>
         ${falta}
@@ -679,13 +721,7 @@ function inputValor(f, i, papel, valor, tipo) {
 }
 
 function opcoesColunasFiltro(selecionado) {
-  const busca = S.buscaFiltro.trim().toLowerCase();
-  const itens = [...S.mapa.entries()]
-    .filter(([chave, m]) => chave === selecionado
-      || !busca
-      || m.coluna.toLowerCase().includes(busca)
-      || String(m.grupo).toLowerCase().includes(busca));
-  return itens
+  return [...S.mapa.entries()]
     .map(([chave, m]) => `<option value="${esc(chave)}" ${selecionado === chave ? 'selected' : ''}>${esc(S.fontes.length > 1 ? `${m.grupo} · ${m.coluna}` : m.coluna)}</option>`)
     .join('');
 }
@@ -704,7 +740,7 @@ function renderFiltros() {
     const entre = f.op === 'between';
     return `
       <div class="filtro-linha ${entre ? 'com-ate' : ''}" data-i="${i}">
-        <select data-papel="coluna">${opcoesColunasFiltro(f.key)}</select>
+        ${comBusca(`<select data-papel="coluna">${opcoesColunasFiltro(f.key)}</select>`, 'pesquisar coluna…')}
         <select data-papel="op">${opcoes}</select>
         <div class="filtro-valores">
           ${inputValor(f, i, 'valor', f.value, tipo)}
@@ -716,12 +752,7 @@ function renderFiltros() {
 }
 
 function renderOrdem() {
-  const busca = S.buscaFiltro.trim().toLowerCase();
-  const itens = [...S.mapa.entries()].filter(([chave, m]) => chave === S.ordemKey
-    || !busca
-    || m.coluna.toLowerCase().includes(busca)
-    || String(m.grupo).toLowerCase().includes(busca));
-  $('#sel-ordem').innerHTML = '<option value="">— sem ordenação —</option>' + itens
+  $('#sel-ordem').innerHTML = '<option value="">— sem ordenação —</option>' + [...S.mapa.entries()]
     .map(([chave, m]) => `<option value="${esc(chave)}" ${S.ordemKey === chave ? 'selected' : ''}>${esc(S.fontes.length > 1 ? `${m.grupo} · ${m.coluna}` : m.coluna)}</option>`)
     .join('');
   $('#sel-dir').value = S.dir;

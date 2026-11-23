@@ -350,6 +350,13 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 
 .busca { width: 200px; padding: 6px 10px; }
 
+/* select com campo de busca (combobox) */
+.combo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.combo-busca { padding: 5px 8px; font-size: 12px; background: #fbfcfe; }
+.combo-busca::placeholder { color: #9aa7b8; }
+.filtro-linha .combo-busca { padding: 4px 7px; }
+.rel-linha .combo-busca { padding: 5px 8px; }
+
 /* linha de grupo na grade de colunas */
 .tabela-mapa tr.grupo td {
   background: var(--azul-claro);

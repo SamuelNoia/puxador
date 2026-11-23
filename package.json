@@ -1,6 +1,6 @@
 {
   "name": "puxador-dados",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Portal web para puxar dados de MySQL, MariaDB, PostgreSQL e Firebird e gerar planilhas",
   "type": "module",
   "private": true,
@@ -11,6 +11,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node tools/selftest.js",
+    "test:busca": "node tools/test-busca.mjs",
     "check:ui": "node tools/check-ui.js",
     "doctor": "node tools/doctor.js"
   },
@@ -18,5 +19,8 @@
     "mysql2": "^3.24.6",
     "pg": "^8.23.1",
     "node-firebird": "^2.21.0"
+  },
+  "devDependencies": {
+    "jsdom": "^27.0.0"
   }
 }
