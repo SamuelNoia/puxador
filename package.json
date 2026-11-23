@@ -1,27 +1,29 @@
 {
-  "name": "puxador-dados",
-  "version": "1.9.0",
-  "description": "Portal web para puxar dados de MySQL, MariaDB, PostgreSQL e Firebird e gerar planilhas",
-  "type": "module",
-  "private": true,
-  "engines": {
-    "node": ">=22.5.0"
-  },
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "test": "node tools/selftest.js",
-    "test:busca": "node tools/test-busca.mjs",
-    "test:seq": "node tools/test-sequencia.mjs",
-    "check:ui": "node tools/check-ui.js",
-    "doctor": "node tools/doctor.js"
-  },
-  "dependencies": {
-    "mysql2": "^3.24.6",
-    "pg": "^8.23.1",
-    "node-firebird": "^2.21.0"
-  },
-  "devDependencies": {
-    "jsdom": "^27.0.0"
-  }
+    "name": "puxador-dados",
+    "version": "1.9.1",
+    "description": "Portal web para puxar dados de MySQL, MariaDB, PostgreSQL e Firebird e gerar planilhas",
+    "type": "module",
+    "private": true,
+    "engines": {
+        "node": ">=22.5.0"
+    },
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node --watch server.js",
+        "test": "node tools/selftest.js",
+        "test:busca": "node tools/test-busca.mjs",
+        "test:seq": "node tools/test-sequencia.mjs",
+        "test:pdf": "node tools/test-pdf.mjs",
+        "check:ui": "node tools/check-ui.js",
+        "doctor": "node tools/doctor.js"
+    },
+    "dependencies": {
+        "mysql2": "^3.24.6",
+        "pg": "^8.23.1",
+        "node-firebird": "^2.21.0"
+    },
+    "devDependencies": {
+        "jsdom": "^27.0.0",
+        "pdfjs-dist": "^6.5.438"
+    }
 }

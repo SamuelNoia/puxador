@@ -7,15 +7,24 @@ const ALTURA_A4_PAISAGEM = 595.28;
 const LARGURA_A4 = 595.28;
 const ALTURA_A4 = 841.89;
 
-// largura media de cada caractere em relacao ao tamanho da fonte (Helvetica)
-const FATORES = { i: 0.28, l: 0.28, j: 0.28, t: 0.33, f: 0.33, r: 0.39, ' ': 0.28, '.': 0.28, ',': 0.28, ':': 0.28, ';': 0.28, '|': 0.26, '1': 0.5, I: 0.28 };
-const FATOR_PADRAO = 0.52;
+// Larguras por classe de caractere, em relacao ao tamanho da fonte (Helvetica).
+// Sao propositalmente um pouco generosas: medir a mais evita texto invadindo a coluna vizinha.
+const LARGOS = new Set(['M', 'W', 'm', 'w', '@', '%', '&']);
+const ESTREITOS = new Set(['i', 'l', 'j', 't', 'f', 'r', 'I', '.', ',', ':', ';', '|', '!', "'", '(', ')', '[', ']', ' ']);
 
-/** Largura aproximada do texto para o tamanho de fonte informado. */
+/** Largura estimada do texto (com folga de 2%) para o tamanho de fonte informado. */
 export function larguraTexto(texto, tamanho = 8) {
   let total = 0;
-  for (const ch of String(texto ?? '')) total += FATORES[ch] ?? FATOR_PADRAO;
-  return total * tamanho;
+  for (const ch of String(texto ?? '')) {
+    if (LARGOS.has(ch)) total += 0.86;
+    else if (ESTREITOS.has(ch)) total += 0.30;
+    else if (ch >= 'A' && ch <= 'Z') total += 0.70;
+    else if (ch >= '0' && ch <= '9') total += 0.58;
+    else if (ch >= 'a' && ch <= 'z') total += 0.55;
+    else if (ch >= '\u00c0' && ch <= '\u00ff') total += 0.62; // acentuadas
+    else total += 0.58;
+  }
+  return total * tamanho * 1.02;
 }
 
 // caracteres tipograficos que existem fora do latin-1 e precisam virar equivalente
@@ -83,22 +92,43 @@ function quebrarEmLinhas(texto, largura, tamanho) {
   return linhas.length ? linhas : [''];
 }
 
-/** Calcula a largura das colunas proporcionalmente ao conteudo. */
-function calcularLarguras(colunas, linhas, larguraDisponivel, fonteTam) {
-  const natural = colunas.map((c, i) => {
-    let maior = larguraTexto(c, fonteTam) + 10;
-    for (const linha of linhas.slice(0, 60)) {
+/** Calcula a largura das colunas pelo conteudo das linhas (o cabecalho quebra em 2 linhas). */
+export function calcularLarguras(colunas, linhas, larguraDisponivel, fonteTam) {
+  const MIN = 40;
+  const CAP = 260;
+
+  const medido = colunas.map((_, i) => {
+    let maior = MIN;
+    for (const linha of linhas.slice(0, 200)) {
       const w = larguraTexto(linha[i] ?? '', fonteTam) + 10;
       if (w > maior) maior = w;
     }
-    return Math.min(Math.max(maior, 42), 240);
+    return maior;
   });
-  const total = natural.reduce((a, b) => a + b, 0);
-  if (total <= larguraDisponivel) {
-    const fator = larguraDisponivel / total;
-    return natural.map((w) => w * fator);
+  const natural = medido.map((w) => Math.min(w, CAP));
+  const soma = natural.reduce((a, b) => a + b, 0) || 1;
+
+  // sobra: distribui com peso quadratico para a coluna mais larga (normalmente a descricao)
+  if (soma <= larguraDisponivel) {
+    const sobra = larguraDisponivel - soma;
+    const pesos = natural.map((w) => w * w);
+    const totalPeso = pesos.reduce((a, b) => a + b, 0) || 1;
+    return natural.map((w, i) => w + sobra * (pesos[i] / totalPeso));
   }
-  return natural.map((w) => (w / total) * larguraDisponivel);
+
+  // precisa encolher: colunas curtas (numeros, ids) mantem o tamanho; as longas dividem o resto
+  const curtas = natural.map((w) => w <= 70);
+  const somaCurtas = natural.filter((_, i) => curtas[i]).reduce((a, b) => a + b, 0);
+  const somaLongas = natural.filter((_, i) => !curtas[i]).reduce((a, b) => a + b, 0);
+  const restante = larguraDisponivel - somaCurtas;
+
+  if (restante > MIN * 2 && somaLongas > 0) {
+    const fator = restante / somaLongas;
+    return natural.map((w, i) => (curtas[i] ? w : Math.max(MIN, w * fator)));
+  }
+
+  const fator = larguraDisponivel / soma;
+  return natural.map((w) => Math.max(MIN, w * fator));
 }
 
 /**
@@ -112,7 +142,7 @@ function calcularLarguras(colunas, linhas, larguraDisponivel, fonteTam) {
  *   fonteTam?: number
  * }} dados
  */
-export function gerarPdf({ titulo = 'Puxador de Dados', colunas = [], linhas = [], orientacao = 'paisagem', quebrarLinha = true, fonteTam }) {
+export function gerarPdf({ titulo = 'Puxador de Dados', colunas = [], linhas = [], orientacao = 'paisagem', quebrarLinha = true, fonteTam, alinharDireita = [] }) {
   const paisagem = orientacao !== 'retrato';
   const larguraPagina = paisagem ? LARGURA_A4_PAISAGEM : LARGURA_A4;
   const alturaPagina = paisagem ? ALTURA_A4_PAISAGEM : ALTURA_A4;
@@ -129,16 +159,25 @@ export function gerarPdf({ titulo = 'Puxador de Dados', colunas = [], linhas = [
     altura: alturaPagina - margem * 2 - 10,
   };
   const larguras = calcularLarguras(colunas, linhas, area.largura, tamanho);
-  const alturaCabecalho = tamanho + 8;
   const alturaLinhaTexto = tamanho + 2;
+  // cabecalho: fonte um pouco menor e ate 3 linhas; se nao couber, termina com "..."
+  const tamanhoCab = Math.max(5.5, tamanho - 0.5);
+  const cabecalhoLinhas = colunas.map((c, i) => {
+    const todas = quebrarEmLinhas(c, larguras[i] - 8, tamanhoCab);
+    if (todas.length <= 3) return todas;
+    const primeiras = todas.slice(0, 3);
+    primeiras[2] = cortar(todas.slice(2).join(' '), larguras[i] - 8, tamanhoCab);
+    return primeiras;
+  });
+  const alturaCabecalho = Math.max(1, ...cabecalhoLinhas.map((l) => l.length)) * (tamanhoCab + 2) + 6;
 
   // prepara cada linha (com ou sem quebra) e sua altura
   const linhasRender = linhas.map((linha) => {
     const celulas = colunas.map((_, i) => {
       const bruto = linha[i] ?? '';
       return quebrarLinha
-        ? quebrarEmLinhas(bruto, larguras[i] - 6, tamanho)
-        : [cortar(bruto, larguras[i] - 6, tamanho)];
+        ? quebrarEmLinhas(bruto, larguras[i] - 8, tamanho)
+        : [cortar(bruto, larguras[i] - 8, tamanho)];
     });
     const qtdLinhas = Math.max(1, ...celulas.map((c) => c.length));
     return { celulas, altura: qtdLinhas * alturaLinhaTexto + 4 };
@@ -182,8 +221,11 @@ export function gerarPdf({ titulo = 'Puxador de Dados', colunas = [], linhas = [
     partes.push('1 1 1 rg');
     let cx = area.x;
     for (let i = 0; i < colunas.length; i += 1) {
-      const texto = cortar(colunas[i], larguras[i] - 6, tamanho);
-      partes.push(`BT /F2 ${tamanho} Tf ${(cx + 3).toFixed(2)} ${(topo - alturaCabecalho + 4).toFixed(2)} Td (${escaparPdf(texto)}) Tj ET`);
+      const linhasCab = cabecalhoLinhas[i] || [''];
+      linhasCab.forEach((texto, ordem) => {
+        const y = topo - 4 - ordem * (tamanhoCab + 2);
+        partes.push(`BT /F2 ${tamanhoCab} Tf ${(cx + 4).toFixed(2)} ${y.toFixed(2)} Td (${escaparPdf(texto)}) Tj ET`);
+      });
       cx += larguras[i];
     }
 
@@ -201,9 +243,13 @@ export function gerarPdf({ titulo = 'Puxador de Dados', colunas = [], linhas = [
       let px = area.x;
       for (let i = 0; i < colunas.length; i += 1) {
         const celula = linha.celulas[i] || [''];
+        const direita = Array.isArray(alinharDireita) && alinharDireita.includes(i);
         celula.forEach((texto, ordem) => {
           const y = linhaY + linha.altura - 4 - (ordem + 1) * alturaLinhaTexto + 3;
-          partes.push(`BT /F1 ${tamanho} Tf ${(px + 3).toFixed(2)} ${y.toFixed(2)} Td (${escaparPdf(texto)}) Tj ET`);
+          const x = direita
+            ? px + larguras[i] - 4 - larguraTexto(texto, tamanho)
+            : px + 4;
+          partes.push(`BT /F1 ${tamanho} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escaparPdf(texto)}) Tj ET`);
         });
         px += larguras[i];
       }

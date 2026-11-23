@@ -4,6 +4,26 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.9.1] — 2026-11-23
+
+### Corrigido
+
+- **PDF: descrição invadia a coluna de `NumFabricante`.** A medição de largura usava uma média única por
+  caractere e subestimava maiúsculas em ~25%; o texto era desenhado mais largo que a coluna calculada.
+  Agora a medição é por classe de caractere (maiúscula, minúscula, dígito, estreito, acentuada), com
+  folga de 2% e 4 pt de padding em cada lado.
+- **Espaço em branco nas colunas de valor.** A largura era influenciada pelo cabeçalho
+  (`item_valor_MargemLucroBrutoVarejo`). Agora a coluna é dimensionada pelas **linhas** e o cabeçalho
+  quebra em até **3 linhas** (com `...` se ainda não couber); a sobra da página vai, com peso, para a
+  coluna mais larga (a descrição). Colunas numéricas ficam justas.
+- Números passaram a ser **alinhados à direita** no PDF.
+
+### Adicionado
+
+- `npm run test:pdf` (`tools/test-pdf.mjs`): monta um PDF com 9 colunas e valida, lendo as posições reais
+  dos textos com `pdfjs`, que **nenhum texto invade a coluna vizinha**, que a descrição é a coluna mais
+  larga e que as numéricas ficam abaixo de 90 pt.
+
 ## [1.9.0] — 2026-11-23
 
 ### Adicionado

@@ -86,6 +86,12 @@ export function gerarPdfTabela({ titulo, mapeamento, linhas, orientacao = 'paisa
     const item = linha[m.destino] || linha[m.origem] || {};
     return numeroParaPdf(item, m.formato, m.decimais);
   }));
+
+  const numericos = new Set(['numero', 'numero_limpo', 'inteiro', 'decimal', 'moeda', 'percentual']);
+  const alinharDireita = mapeamento
+    .map((m, i) => (numericos.has(m.formato) ? i : -1))
+    .filter((i) => i >= 0);
+
   return gerarPdf({
     titulo: titulo || 'Dados',
     colunas,
@@ -93,5 +99,6 @@ export function gerarPdfTabela({ titulo, mapeamento, linhas, orientacao = 'paisa
     orientacao,
     quebrarLinha,
     fonteTam,
+    alinharDireita,
   });
 }
