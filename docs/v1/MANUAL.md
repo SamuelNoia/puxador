@@ -37,12 +37,18 @@ Depois de salva, a conexão aparece à direita com quatro ações:
 Abaixo das conexões fica a lista de **Mapeamentos salvos** — as configurações de extração que você
 guardou com **Salvar mapeamento** na tela de resultado.
 
-Cada item mostra o nome, a tabela principal, a conexão, quantas colunas/filtros tem e quando foi salvo.
+Cada item mostra o nome, a tabela principal, a conexão, quantas colunas/filtros tem e **o nome das
+primeiras colunas da planilha** — assim dá para ver, antes de abrir, se os cabeçalhos são os que você
+quer.
 
 - **usar** — remonta a tela 2 exatamente como estava: conexão, tabelas, relacionamentos, colunas
-  marcadas (com nome na planilha e formatação), filtros, ordenação e limite. Depois é só clicar em
-  **Puxar dados**.
+  marcadas (com nome na planilha e formatação), filtros, ordenação, limite e opções de impressão.
+  Depois é só clicar em **Puxar dados**.
 - **excluir** — remove o mapeamento (não afeta os dados do ERP).
+
+> **Salvar com o mesmo nome atualiza** o mapeamento, em vez de criar outro. É o jeito certo de
+> “republicar” a configuração depois de renomear colunas — evita ficar com uma versão antiga na lista.
+> Se preferir manter históricos diferentes, use nomes diferentes.
 
 > Um mapeamento guarda apenas a *receita*; os dados são sempre lidos na hora, do banco.
 

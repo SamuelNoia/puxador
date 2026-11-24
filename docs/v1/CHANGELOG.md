@@ -4,6 +4,24 @@ Todas as mudanças relevantes deste projeto são registradas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.9.3] — 2026-11-24
+
+### Corrigido
+
+- **Salvar o mesmo mapeamento duas vezes criava duplicatas**, e a lista mostrava duas entradas com o
+  mesmo nome — reabrir a mais antiga trazia os nomes de coluna de antes do renomeio. Agora salvar com o
+  **mesmo nome + conexão atualiza** o registro existente (a resposta traz `atualizado: true` e o aviso
+  na tela muda para “Mapeamento … atualizado”). O `POST /api/mapeamentos` passou a fazer esse *upsert*;
+  enviar `id` também atualiza um registro específico.
+
+### Adicionado
+
+- A lista de mapeamentos mostra os **nomes das primeiras colunas da planilha** (ex.:
+  `cod produto · descricao · fabricante · +5`), então dá para conferir os cabeçalhos antes de abrir.
+- `npm run test:mapa` (`tools/test-mapeamento.mjs`): teste de integração com jsdom que abre o app real,
+  clica em **usar** e valida que os nomes na planilha, a ordem (Seq) e as opções de impressão voltam —
+  além de conferir o que é enviado ao salvar.
+
 ## [1.9.2] — 2026-11-23
 
 ### Corrigido

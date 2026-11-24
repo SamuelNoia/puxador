@@ -303,13 +303,30 @@ export function registrar() {
     if (!get('SELECT id FROM connections WHERE id = ?', Number(body.conexaoId))) {
       throw new HttpError(404, 'Conexao nao encontrada.');
     }
+
+    const config = JSON.stringify(body.config || {});
+    const schema = body.schema || null;
+    const tabela = String(body.tabela);
+    const nome = String(body.nome);
+
+    // mesmo nome + conexao = atualiza (evita duplicar e reabrir uma versao antiga sem querer)
+    const existente = body.id
+      ? get('SELECT id FROM mappings WHERE id = ?', Number(body.id))
+      : get('SELECT id FROM mappings WHERE connection_id = ? AND lower(name) = lower(?)',
+        Number(body.conexaoId), nome);
+
+    if (existente) {
+      run('UPDATE mappings SET name=?, schema_name=?, table_name=?, config=?, updated_at=? WHERE id=?',
+        nome, schema, tabela, config, nowIso(), existente.id);
+      return { ok: true, id: existente.id, atualizado: true };
+    }
+
     const { lastId } = run(
       `INSERT INTO mappings (connection_id, name, schema_name, table_name, config, created_at)
        VALUES (?,?,?,?,?,?)`,
-      Number(body.conexaoId), String(body.nome), body.schema || null, String(body.tabela),
-      JSON.stringify(body.config || {}), nowIso(),
+      Number(body.conexaoId), nome, schema, tabela, config, nowIso(),
     );
-    return { ok: true, id: lastId };
+    return { ok: true, id: lastId, atualizado: false };
   });
 
   route('DELETE', '/api/mapeamentos/:id', async (ctx) => {

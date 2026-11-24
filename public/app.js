@@ -268,14 +268,19 @@ function renderMapeamentos() {
 
   alvo.innerHTML = S.mapeamentos.map((m) => {
     const conexao = S.conexoes.find((c) => c.id === m.conexaoId);
-    const qtdColunas = Array.isArray(m.config?.colunas) ? m.config.colunas.length : 0;
+    const colunas = Array.isArray(m.config?.colunas) ? m.config.colunas : [];
     const qtdFiltros = Array.isArray(m.config?.filtros) ? m.config.filtros.length : 0;
     const quando = m.atualizadoEm ? new Date(m.atualizadoEm).toLocaleString('pt-BR') : '';
+    const previa = colunas.slice(0, 4).map((c) => c.destino || c.origem).filter(Boolean);
+    const nomes = previa.length
+      ? `<span class="mapeamento-colunas">${esc(previa.join(' · '))}${colunas.length > previa.length ? ` · +${colunas.length - previa.length}` : ''}</span>`
+      : '';
     return `
       <div class="item-mapeamento" data-id="${m.id}">
         <div class="dados">
           <strong>${esc(m.nome)}</strong>
-          <span>${esc(m.tabela)}${conexao ? ` · ${esc(conexao.nome)}` : ''} · ${qtdColunas} coluna(s)${qtdFiltros ? ` · ${qtdFiltros} filtro(s)` : ''}${quando ? ` · ${esc(quando)}` : ''}</span>
+          <span>${esc(m.tabela)}${conexao ? ` · ${esc(conexao.nome)}` : ''} · ${colunas.length} coluna(s)${qtdFiltros ? ` · ${qtdFiltros} filtro(s)` : ''}${quando ? ` · ${esc(quando)}` : ''}</span>
+          ${nomes}
         </div>
         <button class="btn sm primary" data-acao="usar-mapa">usar</button>
         <button class="btn sm danger" data-acao="excluir-mapa">excluir</button>
@@ -1164,7 +1169,7 @@ async function salvarMapeamento() {
     }));
 
   try {
-    await api('/api/mapeamentos', {
+    const r = await api('/api/mapeamentos', {
       method: 'POST',
       body: {
         conexaoId: S.conexaoId,
@@ -1182,7 +1187,7 @@ async function salvarMapeamento() {
         },
       },
     });
-    toast('Mapeamento salvo.');
+    toast(r && r.atualizado ? `Mapeamento “${nome}” atualizado.` : 'Mapeamento salvo.');
     await carregarMapeamentos();
   } catch (e) {
     toast(e.message, 'erro');

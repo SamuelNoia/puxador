@@ -224,6 +224,17 @@ input[type="checkbox"] { width: auto; }
   display: block;
 }
 
+.item-mapeamento .dados .mapeamento-colunas {
+  color: var(--azul);
+  font-size: 11px;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  margin-top: 2px;
+}
+
 .vazio { padding: 18px; text-align: center; }
 
 .aviso {
